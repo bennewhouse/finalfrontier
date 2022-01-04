@@ -2548,7 +2548,7 @@ static const u16 sSpriteImageSizes[3][4] =
     },
 };
 
-u8 CreateMonIcon(u16 species, void (*callback)(struct Sprite *), s16 x, s16 y, u8 subpriority, u32 personality)
+u8 CreateMonIcon(u16 species, void (*callback)(struct Sprite *), s16 x, s16 y, u8 subpriority, u32 personality, bool32 handleDeoxys)
 {
     u8 spriteId;
     struct MonIconSpriteTemplate iconTemplate =
@@ -2573,7 +2573,7 @@ u8 CreateMonIcon(u16 species, void (*callback)(struct Sprite *), s16 x, s16 y, u
     return spriteId;
 }
 
-u8 CreateMonIconNoPersonality(u16 species, void (*callback)(struct Sprite *), s16 x, s16 y, u8 subpriority)
+u8 CreateMonIconNoPersonality(u16 species, void (*callback)(struct Sprite *), s16 x, s16 y, u8 subpriority, bool32 handleDeoxys)
 {
     u8 spriteId;
     struct MonIconSpriteTemplate iconTemplate =

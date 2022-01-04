@@ -3876,7 +3876,7 @@ static void CreatePartyMonIconSpriteParameterized(u16 species, u32 pid, struct P
 {
     if (species != SPECIES_NONE)
     {
-        menuBox->monSpriteId = CreateMonIcon(species, SpriteCB_MonIcon, menuBox->spriteCoords[0], menuBox->spriteCoords[1], 4, pid);
+        menuBox->monSpriteId = CreateMonIcon(species, SpriteCB_MonIcon, menuBox->spriteCoords[0], menuBox->spriteCoords[1], 4, pid, TRUE); //originally handledeoxys, toggle for multi battlex
         gSprites[menuBox->monSpriteId].oam.priority = priority;
     }
 }

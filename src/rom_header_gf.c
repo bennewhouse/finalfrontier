@@ -84,7 +84,7 @@ struct GFRomHeader
     u32 enigmaBerryOffset;
     #endif
     u32 mapViewOffset;
-    u32 unk19;
+    u32 registrability;
     u32 unk20;
 };
 
@@ -167,6 +167,6 @@ static const struct GFRomHeader sGFRomHeader = {
     .enigmaBerryOffset = offsetof(struct SaveBlock1, enigmaBerry),
     #endif
     .mapViewOffset = offsetof(struct SaveBlock1, mapView),
-    .unk19 = 0x00000000,
+    .registrability = 0x00000000,
     .unk20 = 0x00000000, // 0xFFFFFFFF in FRLG
 };

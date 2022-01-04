@@ -227,7 +227,7 @@ struct BaseStats
  /* 0x14 */ u8 eggGroup1;
  /* 0x15 */ u8 eggGroup2;
             #ifdef BATTLE_ENGINE
- /* 0x16 */ u8 abilities[NUM_ABILITY_SLOTS];
+ /* 0x16 */ u16 abilities[NUM_ABILITY_SLOTS];
             #else
             u8 abilities[2];
             #endif
@@ -237,6 +237,7 @@ struct BaseStats
             #ifndef BATTLE_ENGINE
  /* 0x1A */ u8 abilityHidden;
             #endif
+            u8 flags;
 }; /* size = 28 */
 
 #include "constants/battle_config.h"

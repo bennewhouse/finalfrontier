@@ -6850,10 +6850,10 @@ void MonGainEVs(struct Pokemon *mon, u16 defeatedSpecies)
     {
     holdEffect = ItemId_GetHoldEffect(heldItem);
     }
-    else
-    {
-        holdEffect = ItemId_GetHoldEffect(heldItem);
-    }
+    //else
+    //{
+    //    holdEffect = ItemId_GetHoldEffect(heldItem);
+    //}
 
     stat = ItemId_GetSecondaryId(heldItem);
     bonus = ItemId_GetHoldEffectParam(heldItem);
