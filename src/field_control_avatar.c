@@ -138,13 +138,17 @@ void FieldGetPlayerInput(struct FieldInput *input, u16 newKeys, u16 heldKeys)
     else if (heldKeys & DPAD_RIGHT)
         input->dpadDirection = DIR_EAST;
 
-#if DEBUGGING
-    if ((heldKeys & R_BUTTON) && input->pressedStartButton)
-   {
+    //DEBUG
+    #ifdef TX_DEBUGGING
+        if (!TX_DEBUG_MENU_OPTION)
+        {
+         if ((heldKeys & R_BUTTON) && input->pressedStartButton)
+        {
         input->input_field_1_2 = TRUE;
         input->pressedStartButton = FALSE;
-   }
-#endif
+        }
+        }
+    #endif
 }
 
 int ProcessPlayerFieldInput(struct FieldInput *input)
@@ -207,21 +211,23 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     
     if (input->pressedSelectButton && UseRegisteredKeyItemOnField() == TRUE)
         return TRUE;
-
-    #if DEBUGGING
-    if (input->input_field_1_2)
-    {
-        PlaySE(SE_WIN_OPEN);
-        Debug_ShowMainMenu();
-        return TRUE;
-    }
-    #endif    
     
     if (input->pressedRButton && TryStartDexnavSearch())
         return TRUE;
     
     if (input->pressedLButton && EnableAutoRun())
         return TRUE;
+    #ifdef TX_DEBUGGING
+        if (!TX_DEBUG_MENU_OPTION)
+        {
+            if (input->input_field_1_2)
+            {
+                PlaySE(SE_WIN_OPEN);
+                Debug_ShowMainMenu();
+                return TRUE;
+            }
+        }
+    #endif
 
     return FALSE;
 }
@@ -742,6 +748,11 @@ void RestartWildEncounterImmunitySteps(void)
 
 static bool8 CheckStandardWildEncounter(u16 metatileBehavior)
 {
+    #ifdef TX_DEBUGGING
+    if (FlagGet(FLAG_SYS_NO_ENCOUNTER)) //DEBUG
+        return FALSE;//
+    #endif
+
     if (sWildEncounterImmunitySteps < 4)
     {
         sWildEncounterImmunitySteps++;
@@ -757,7 +768,7 @@ static bool8 CheckStandardWildEncounter(u16 metatileBehavior)
     }
 
     sPreviousPlayerMetatileBehavior = metatileBehavior;
-    return FALSE;
+    return FALSE;   
 }
 
 static bool8 TryArrowWarp(struct MapPosition *position, u16 metatileBehavior, u8 direction)

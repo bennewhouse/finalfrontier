@@ -151,3 +151,4 @@
 	.include "src/dns.o"
 	.include "src/quests.o"
 	.include "src/dexnav.o"
+	.include "src/debug.o"
