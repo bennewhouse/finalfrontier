@@ -490,7 +490,7 @@ static void CreateCardSprites(void)
     // Create icon sprite
     if (sWonderCardData->cardMetadata.iconSpecies != SPECIES_NONE)
     {
-        sWonderCardData->monIconSpriteId = CreateMonIconNoPersonality(GetIconSpeciesNoPersonality(sWonderCardData->cardMetadata.iconSpecies), SpriteCallbackDummy, 220, 20, 0, FALSE);
+        sWonderCardData->monIconSpriteId = CreateMonIconNoPersonality(GetIconSpeciesNoPersonality(sWonderCardData->cardMetadata.iconSpecies), SpriteCallbackDummy, 220, 20, 0);
         gSprites[sWonderCardData->monIconSpriteId].oam.priority = 2;
     }
 
