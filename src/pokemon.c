@@ -8207,7 +8207,6 @@ u16 GetFormChangeTargetSpeciesBoxMon(struct BoxPokemon *mon, u16 method, u32 arg
     return species != targetSpecies ? targetSpecies : SPECIES_NONE;
 }
 
-<<<<<<< HEAD
 void CreateShinyMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 nature)
 {
     u32 personality;
@@ -8223,7 +8222,10 @@ void CreateShinyMonWithNature(struct Pokemon *mon, u16 species, u8 level, u8 nat
     } while (nature != GetNatureFromPersonality(personality));
 
     CreateMon(mon, species, level, 32, 1, personality, OT_ID_PRESET, otid);
-=======
+
+}
+
+
 u16 MonTryLearningNewMoveEvolution(struct Pokemon *mon, bool8 firstMove)
 {
     u16 species = GetMonData(mon, MON_DATA_SPECIES, NULL);
@@ -8248,5 +8250,4 @@ u16 MonTryLearningNewMoveEvolution(struct Pokemon *mon, bool8 firstMove)
         sLearningMoveTableID++;
     }
     return 0;
->>>>>>> rhh/pokemon_expansion
 }

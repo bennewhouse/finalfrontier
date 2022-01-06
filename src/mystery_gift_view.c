@@ -508,7 +508,7 @@ static void CreateCardSprites(void)
                 sWonderCardData->stampSpriteIds[i][1] = CreateMonIconNoPersonality(GetIconSpeciesNoPersonality(sWonderCardData->cardMetadata.stampData[STAMP_SPECIES][i]), 
                                                                                SpriteCallbackDummy,
                                                                                216 - 32 * i,
-                                                                               136, 0, 0);
+                                                                               136, 0);
         }
     }
 }
