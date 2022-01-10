@@ -3298,6 +3298,9 @@ void CreateBoxMon(struct BoxPokemon *boxMon, u16 species, u8 level, u8 fixedIV, 
         SetBoxMonData(boxMon, MON_DATA_ABILITY_NUM, &value);
     }
 
+    value = HIDDEN_NATURE_NONE;
+    SetBoxMonData(boxMon, MON_DATA_HIDDEN_NATURE, &value);
+
     GiveBoxMonInitialMoveset(boxMon);
 }
 
@@ -3769,7 +3772,7 @@ static u16 CalculateBoxMonChecksum(struct BoxPokemon *boxMon)
 {                                                               \
     u8 baseStat = gBaseStats[species].base;                     \
     s32 n = (((2 * baseStat + iv + ev / 4) * level) / 100) + 5; \
-    u8 nature = GetNature(mon);                                 \
+    u8 nature = GetNature(mon, TRUE);                                 \
     n = ModifyStatByNature(nature, n, statIndex);               \
     SetMonData(mon, field, &n);                                 \
 }
@@ -4703,6 +4706,9 @@ u32 GetBoxMonData(struct BoxPokemon *boxMon, s32 field, u8 *data)
                 | (substruct3->worldRibbon << 26);
         }
         break;
+    case MON_DATA_HIDDEN_NATURE:
+        retVal = substruct0->hiddenNature;
+        break;
     default:
         break;
     }
@@ -4942,6 +4948,9 @@ void SetBoxMonData(struct BoxPokemon *boxMon, s32 field, const void *dataArg)
         break;
     case MON_DATA_SPDEF_IV:
         SET8(substruct3->spDefenseIV);
+        break;
+    case MON_DATA_HIDDEN_NATURE:
+        SET8(substruct0->hiddenNature);
         break;
     case MON_DATA_IS_EGG:
         SET8(substruct3->isEgg);
@@ -6283,9 +6292,12 @@ u8 *UseStatIncreaseItem(u16 itemId)
     return gDisplayedStringBattle;
 }
 
-u8 GetNature(struct Pokemon *mon)
+u8 GetNature(struct Pokemon *mon, bool32 checkHidden)
 {
-    return GetMonData(mon, MON_DATA_PERSONALITY, 0) % NUM_NATURES;
+    if (!checkHidden || GetMonData(mon, MON_DATA_HIDDEN_NATURE, 0) == HIDDEN_NATURE_NONE)
+        return GetNatureFromPersonality(GetMonData(mon, MON_DATA_PERSONALITY, 0));
+    else
+        return GetMonData(mon, MON_DATA_HIDDEN_NATURE, 0);
 }
 
 u8 GetNatureFromPersonality(u32 personality)
@@ -6477,7 +6489,7 @@ u16 GetEvolutionTargetSpecies(struct Pokemon *mon, u8 mode, u16 evolutionItem, u
             case EVO_LEVEL_NATURE_AMPED:
                 if (gEvolutionTable[species][i].param <= level)
                 {
-                    u8 nature = GetNature(mon);
+                    u8 nature = GetNature(mon, FALSE); //False to be safe, code is weird
                     switch (nature)
                     {
                         case NATURE_HARDY:
@@ -6501,7 +6513,7 @@ u16 GetEvolutionTargetSpecies(struct Pokemon *mon, u8 mode, u16 evolutionItem, u
             case EVO_LEVEL_NATURE_LOW_KEY:
                 if (gEvolutionTable[species][i].param <= level)
                 {
-                    u8 nature = GetNature(mon);
+                    u8 nature = GetNature(mon, FALSE);
                     switch (nature)
                     {
                         case NATURE_LONELY:
@@ -7505,7 +7517,7 @@ bool8 IsMonSpriteNotFlipped(u16 species)
 
 s8 GetMonFlavorRelation(struct Pokemon *mon, u8 flavor)
 {
-    u8 nature = GetNature(mon);
+    u8 nature = GetNature(mon, FALSE);
     return gPokeblockFlavorCompatibilityTable[nature * FLAVOR_COUNT + flavor];
 }
 
