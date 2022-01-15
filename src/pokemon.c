@@ -7236,7 +7236,7 @@ u8 GetMoveRelearnerMoves(struct Pokemon *mon, u16 *moves)
 
         moveLevel = gLevelUpLearnsets[species][i].level;
 
-        if (moveLevel <= level)
+        if (moveLevel <= level) //change to 100????
         {
             for (j = 0; j < MAX_MON_MOVES && learnedMoves[j] != gLevelUpLearnsets[species][i].move; j++)
                 ;
