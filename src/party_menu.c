@@ -6660,6 +6660,7 @@ void IsLastMonThatKnowsSurf(void)
 #define tOldFunc        4
 #define tNewNature      data[6]
 
+
 static const u8 sText_AskMint[] = _("Would you like to change {STR_VAR_1}'s\nnature to {STR_VAR_2}?");
 static const u8 sText_MintDone[] = _("{STR_VAR_1}'s nature became\n{STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
 static void Task_Mints(u8 taskId)
@@ -6748,4 +6749,125 @@ void ItemUseCB_Mints(u8 taskId, TaskFunc task)
     tNewNature = ItemId_GetSecondaryId(gSpecialVar_ItemId);
     SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
     gTasks[taskId].func = Task_Mints;
+}
+
+#undef tState         
+#undef tSpecies        
+#undef tCurrNature     
+#undef tMonId          
+#undef tOldFunc        
+#undef tNewNature      
+
+//Vitamins
+
+#define tState          data[0]
+#define tSpecies        data[1]
+#define tOldIV          data[2]
+#define tMonId          data[3]
+#define tOldFunc        4
+#define tIVTypeChange   data[6]
+
+static const u8 sText_AskVitamin[] = _("Would you like to max {STR_VAR_1}'s\n{STR_VAR_2}?");
+static const u8 sText_AskVitaminTooMuch[] = _("Would you to continue to feed {STR_VAR_1}?");
+static const u8 sText_VitaminDone[] = _("{STR_VAR_1}'s {STR_VAR_2} became maxed!{PAUSE_UNTIL_PRESS}");
+static const u8 sText_VitaminDoneTooMuch[] = _("{STR_VAR_1}'s took too many vitamns\nso their {STR_VAR_2} became\nweaker instead!{PAUSE_UNTIL_PRESS}");
+static void Task_Vitamins(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 maxIV = 31;
+    u8 zeroIV = 0;
+
+    switch (tState)
+    {
+    case 0:
+    
+        gPartyMenuUseExitCallback = TRUE;
+        GetMonNickname(&gPlayerParty[tMonId], gStringVar1);
+        StringCopy(gStringVar2, gStatNamePointers[tIVTypeChange]); 
+        if (tOldIV == maxIV)
+        {
+            StringExpandPlaceholders(gStringVar4, sText_AskVitaminTooMuch);
+        }
+        else
+        {
+            StringExpandPlaceholders(gStringVar4, sText_AskVitamin);
+        }
+        
+        PlaySE(SE_SELECT);
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    case 1:
+        if (!IsPartyMenuTextPrinterActive())
+        {
+            PartyMenuDisplayYesNoMenu();
+            tState++;
+        }
+        break;
+    case 2:
+        switch (Menu_ProcessInputNoWrapClearOnChoose())
+        {
+        case 0:
+            tState++;
+            break;
+        case 1:
+        case MENU_B_PRESSED:
+            gPartyMenuUseExitCallback = FALSE;
+            PlaySE(SE_SELECT);
+            ScheduleBgCopyTilemapToVram(2);
+
+            // Don't exit party selections screen, return to choosing a mon.
+            ClearStdWindowAndFrameToTransparent(6, 0);
+            ClearWindowTilemap(6);
+            DisplayPartyMenuStdMessage(PARTY_MSG_USE_ON_WHICH_MON);
+            gTasks[taskId].func = (TaskFunc)GetWordTaskArg(taskId, tOldFunc);
+            return;
+        }
+        break;
+    case 3:
+        PlaySE(SE_USE_ITEM);
+        if (tOldIV == maxIV)
+        {
+            StringExpandPlaceholders(gStringVar4, sText_VitaminDoneTooMuch);
+        }
+        else{
+            StringExpandPlaceholders(gStringVar4, sText_VitaminDone);
+        }
+        StringCopy(gStringVar2, gStatNamePointers[tIVTypeChange]);
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    case 4:
+        if (!IsPartyMenuTextPrinterActive())
+            tState++;
+        break;
+    case 5:
+        if (tOldIV ==maxIV)
+        {
+            SetMonData(&gPlayerParty[tMonId], tIVTypeChange, &zeroIV);
+        }
+        else{
+            SetMonData(&gPlayerParty[tMonId], tIVTypeChange, &maxIV);
+        }
+        
+        CalculateMonStats(&gPlayerParty[tMonId]);
+        RemoveBagItem(gSpecialVar_ItemId, 1);
+        gTasks[taskId].func = Task_ClosePartyMenu;
+        break;
+    }
+}
+
+void ItemUseCB_Vitamins(u8 taskId, TaskFunc task)
+{
+    s16 *data = gTasks[taskId].data;
+
+    tState = 0;
+    tMonId = gPartyMenu.slotId;
+    tIVTypeChange = ItemId_GetSecondaryId(gSpecialVar_ItemId);
+    tSpecies = GetMonData(&gPlayerParty[tMonId], MON_DATA_SPECIES, NULL);
+    tOldIV = GetMonData(&gPlayerParty[tMonId], tIVTypeChange, NULL);
+    SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
+    gTasks[taskId].func = Task_Vitamins;
 }

@@ -1211,5 +1211,11 @@ void ItemUseOutOfBattle_Mints(u8 taskId)
     SetUpItemUseCallback(taskId);
 }
 
+void ItemUseOutOfBattle_Vitamins(u8 taskId)
+{
+    gItemUseCB = ItemUseCB_Vitamins;
+    SetUpItemUseCallback(taskId);
+}
+
 
 #undef tUsingRegisteredKeyItem
