@@ -6661,7 +6661,7 @@ void IsLastMonThatKnowsSurf(void)
 #define tNewNature      data[6]
 
 
-static const u8 sText_AskMint[] = _("Would you like to change {STR_VAR_1}'s\nnature to {STR_VAR_2}?");
+static const u8 sText_AskMint[] = _("Would you like to feed {STR_VAR_1}\nthe {STR_VAR_2} mint?");
 static const u8 sText_MintDone[] = _("{STR_VAR_1}'s nature became\n{STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
 static void Task_Mints(u8 taskId)
 {
@@ -6767,8 +6767,8 @@ void ItemUseCB_Mints(u8 taskId, TaskFunc task)
 #define tOldFunc        4
 #define tIVTypeChange   data[6]
 
-static const u8 sText_AskVitamin[] = _("Would you like to max {STR_VAR_1}'s\n{STR_VAR_2}?");
-static const u8 sText_AskVitaminTooMuch[] = _("Would you to continue to feed {STR_VAR_1}?");
+static const u8 sText_AskVitamin[] = _("Would you like to feed\n {STR_VAR_1} the {STR_VAR_2} vitamin?");
+static const u8 sText_AskVitaminTooMuch[] = _("Would you like to continue\n to feed {STR_VAR_1}?");
 static const u8 sText_VitaminDone[] = _("{STR_VAR_1}'s {STR_VAR_2} became maxed!{PAUSE_UNTIL_PRESS}");
 static const u8 sText_VitaminDoneTooMuch[] = _("{STR_VAR_1}'s took too many vitamns\nso their {STR_VAR_2} became\nweaker instead!{PAUSE_UNTIL_PRESS}");
 static void Task_Vitamins(u8 taskId)
@@ -6834,7 +6834,7 @@ static void Task_Vitamins(u8 taskId)
         else{
             StringExpandPlaceholders(gStringVar4, sText_VitaminDone);
         }
-        StringCopy(gStringVar2, gStatNamePointers[tIVTypeChange]);
+        
         DisplayPartyMenuMessage(gStringVar4, TRUE);
         ScheduleBgCopyTilemapToVram(2);
         tState++;
@@ -6870,4 +6870,122 @@ void ItemUseCB_Vitamins(u8 taskId, TaskFunc task)
     tOldIV = GetMonData(&gPlayerParty[tMonId], tIVTypeChange, NULL);
     SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
     gTasks[taskId].func = Task_Vitamins;
+}
+
+#undef tState         
+#undef tSpecies        
+#undef tOldIV     
+#undef tMonId          
+#undef tOldFunc        
+#undef tIVTypeChange  
+
+#define tState          data[0]
+#define tSpecies        data[1]
+#define tLVLChange      data[2]
+#define tMonId          data[3]
+#define tOldFunc        4
+#define tOldLVL         data[6]
+
+static const u8 sText_AskEXPCandy[] = _("Would you like to feed {STR_VAR_1}\nthe EXP Candy?");
+static const u8 sText_EXPCandyUp[] = _("{STR_VAR_1} leveled up\nto lvl {STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
+static const u8 sText_EXPCandyDown[] = _("{STR_VAR_1} leveled down\nto lvl {STR_VAR_2}!{PAUSE_UNTIL_PRESS}");
+static void Task_EXPCandy(u8 taskId)
+{
+    s16 *data = gTasks[taskId].data;
+    u8 newLevelChange = abs(tLVLChange - tOldLVL);
+    u32 dataUnsigned = 0;
+    switch (tState)
+    {
+    case 0:
+        if (tLVLChange == tOldLVL)
+        {
+            gPartyMenuUseExitCallback = FALSE;
+            PlaySE(SE_SELECT);
+            DisplayPartyMenuMessage(gText_WontHaveEffect, 1);
+            ScheduleBgCopyTilemapToVram(2);
+            gTasks[taskId].func = Task_ReturnToChooseMonAfterText;
+            return;
+        }
+        gPartyMenuUseExitCallback = TRUE;
+        GetMonNickname(&gPlayerParty[tMonId], gStringVar1);
+        StringExpandPlaceholders(gStringVar4, sText_AskEXPCandy);
+        PlaySE(SE_SELECT);
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    case 1:
+        if (!IsPartyMenuTextPrinterActive())
+        {
+            PartyMenuDisplayYesNoMenu();
+            tState++;
+        }
+        break;
+    case 2:
+        switch (Menu_ProcessInputNoWrapClearOnChoose())
+        {
+        case 0:
+            tState++;
+            break;
+        case 1:
+        case MENU_B_PRESSED:
+            gPartyMenuUseExitCallback = FALSE;
+            PlaySE(SE_SELECT);
+            ScheduleBgCopyTilemapToVram(2);
+
+            // Don't exit party selections screen, return to choosing a mon.
+            ClearStdWindowAndFrameToTransparent(6, 0);
+            ClearWindowTilemap(6);
+            DisplayPartyMenuStdMessage(PARTY_MSG_USE_ON_WHICH_MON);
+            gTasks[taskId].func = (TaskFunc)GetWordTaskArg(taskId, tOldFunc);
+            return;
+        }
+        break;
+    case 3:
+        if (tLVLChange > tOldLVL){
+            dataUnsigned = gExperienceTables[gBaseStats[tSpecies].growthRate][tOldLVL + newLevelChange];
+        }
+        else{
+            dataUnsigned = gExperienceTables[gBaseStats[tSpecies].growthRate][tOldLVL - newLevelChange];
+        }
+        SetMonData(&gPlayerParty[tMonId], MON_DATA_EXP, &dataUnsigned);
+        CalculateMonStats(&gPlayerParty[tMonId]); 
+        UpdateMonDisplayInfoAfterRareCandy(gPartyMenu.slotId, &gPlayerParty[tMonId]);
+        PlaySE(MUS_LEVEL_UP);       
+        GetMonNickname(&gPlayerParty[tMonId], gStringVar1);
+        ConvertIntToDecimalStringN(gStringVar2, tLVLChange, STR_CONV_MODE_LEFT_ALIGN, 3);
+        if (tLVLChange > tOldLVL)
+        {
+            StringExpandPlaceholders(gStringVar4, sText_EXPCandyUp);
+        }
+        else{
+            StringExpandPlaceholders(gStringVar4, sText_EXPCandyDown);
+        }
+        DisplayPartyMenuMessage(gStringVar4, TRUE);
+        ScheduleBgCopyTilemapToVram(2);
+        tState++;
+        break;
+    case 4:
+        if (!IsPartyMenuTextPrinterActive())
+            tState++;
+        break;
+    case 5: 
+        RemoveBagItem(gSpecialVar_ItemId, 1);
+        gTasks[taskId].func = Task_ClosePartyMenu;
+        break;
+    }
+}
+
+void ItemUseCB_EXPCandy(u8 taskId, TaskFunc task)
+{
+    s16 *data = gTasks[taskId].data;
+
+    tState = 0;
+    tMonId = gPartyMenu.slotId;
+    tLVLChange = ItemId_GetSecondaryId(gSpecialVar_ItemId);
+    tSpecies = GetMonData(&gPlayerParty[tMonId], MON_DATA_SPECIES, NULL);
+    SetWordTaskArg(taskId, tOldFunc, (uintptr_t)(gTasks[taskId].func));
+    tOldLVL = GetMonData(&gPlayerParty[tMonId], MON_DATA_LEVEL, NULL);
+    gTasks[taskId].func = Task_EXPCandy;
+    
 }

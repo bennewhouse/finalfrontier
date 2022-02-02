@@ -536,34 +536,34 @@ static const u8 sSeriousMintDesc[] = _(
 
 // Candy
 static const u8 sRareCandyDesc[] = _(
-    "Raises the level\n"
-    "of a Pokémon by\n"
-    "one.");
+    "A classic treat.\n"
+    "Raises a Pokemon's\n"
+    "level by 1.\n");
 
 static const u8 sExpCandyXSDesc[] = _(
-    "Gives a very small\n"
-    "amount of Exp. to\n"
-    "a single Pokémon.");
+    "A delicate treat.\n"
+    "Sets a Pokemon's\n"
+    "level to 1.\n");
 
 static const u8 sExpCandySDesc[] = _(
-    "Gives a small\n"
-    "amount of Exp. to\n"
-    "a single Pokémon.");
+    "A quaint treat.\n"
+    "Sets a Pokemon's\n"
+    "level to 20.\n");
 
 static const u8 sExpCandyMDesc[] = _(
-    "Gives a moderate\n"
-    "amount of Exp. to\n"
-    "a single Pokémon.");
+    "A tasty treat.\n"
+    "Sets a Pokemon's\n"
+    "level to 50.\n");
 
 static const u8 sExpCandyLDesc[] = _(
-    "Gives a large\n"
-    "amount of Exp. to\n"
-    "a single Pokémon.");
+    "A mighty treat.\n"
+    "Sets a Pokemon's\n"
+    "level to 75.\n");
 
 static const u8 sExpCandyXLDesc[] = _(
-    "Gives a very large\n"
-    "amount of Exp. to\n"
-    "a single Pokémon.");
+    "An awesome treat.\n"
+    "Sets a Pokemon's\n"
+    "level to 100.\n");
 
 static const u8 sDynamaxCandyDesc[] = _(
     "Raises the Dynamax\n"

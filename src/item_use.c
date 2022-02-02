@@ -1217,5 +1217,10 @@ void ItemUseOutOfBattle_Vitamins(u8 taskId)
     SetUpItemUseCallback(taskId);
 }
 
+void ItemUseOutOfBattle_EXPCandy(u8 taskId)
+{
+    gItemUseCB = ItemUseCB_EXPCandy;
+    SetUpItemUseCallback(taskId);
+}
 
 #undef tUsingRegisteredKeyItem

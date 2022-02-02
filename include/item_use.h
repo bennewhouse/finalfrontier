@@ -38,6 +38,7 @@ u8 CanUseDigOrEscapeRopeOnCurMap(void);
 u8 CheckIfItemIsTMHMOrEvolutionStone(u16 itemId);
 void ItemUseOutOfBattle_Mints(u8 taskId);
 void ItemUseOutOfBattle_Vitamins(u8 taskId);
+void ItemUseOutOfBattle_EXPCandy(u8 taskId);
 
 enum {
     BALL_THROW_UNABLE_TWO_MONS,

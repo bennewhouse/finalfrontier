@@ -1,6 +1,6 @@
 static const u8 sHPStatName[] = _("HP");
 static const u8 sAtkStatName[] = _("Attack");
-static const u8 sDefStatName[] = _("Defene");
+static const u8 sDefStatName[] = _("Defense");
 static const u8 sSPAtkStatName[] = _("Special Attack");
 static const u8 sSPDefStatName[] = _("Special Defense");
 static const u8 sSpeedStatName[] = _("Speed");

@@ -1327,8 +1327,9 @@ const struct Item gItems[] =
         .price = 20,
         .description = sExpCandyXSDesc,
         .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, 
+        .secondaryId = 1
     },
 
     [ITEM_EXP_CANDY_S] =
@@ -1338,8 +1339,9 @@ const struct Item gItems[] =
         .price = 240,
         .description = sExpCandyXSDesc,
         .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, 
+        .secondaryId = 20
     },
 
     [ITEM_EXP_CANDY_M] =
@@ -1349,8 +1351,9 @@ const struct Item gItems[] =
         .price = 1000,
         .description = sExpCandyMDesc,
         .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, 
+        .secondaryId = 50
     },
 
     [ITEM_EXP_CANDY_L] =
@@ -1360,8 +1363,9 @@ const struct Item gItems[] =
         .price = 3000,
         .description = sExpCandyLDesc,
         .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, 
+        .secondaryId = 75
     },
 
     [ITEM_EXP_CANDY_XL] =
@@ -1371,8 +1375,9 @@ const struct Item gItems[] =
         .price = 10000,
         .description = sExpCandyXLDesc,
         .pocket = POCKET_ITEMS,
-        .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .type = ITEM_USE_PARTY_MENU,
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, 
+        .secondaryId = 100
     },
 
     [ITEM_DYNAMAX_CANDY] =
@@ -1383,7 +1388,7 @@ const struct Item gItems[] =
         .description = sDynamaxCandyDesc,
         .pocket = POCKET_ITEMS,
         .type = ITEM_USE_BAG_MENU,
-        .fieldUseFunc = ItemUseOutOfBattle_CannotUse, // Todo
+        .fieldUseFunc = ItemUseOutOfBattle_EXPCandy, // Todo
     },
 
 // Medicinal Flutes
