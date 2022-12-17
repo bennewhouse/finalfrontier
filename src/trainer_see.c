@@ -1,6 +1,5 @@
 #include "global.h"
 #include "battle_setup.h"
-#include "debug.h"
 #include "event_data.h"
 #include "event_object_movement.h"
 #include "field_effect.h"
@@ -60,9 +59,9 @@ bool8 gTrainerApproachedPlayer;
 EWRAM_DATA u8 gApproachingTrainerId = 0;
 
 // const rom data
-static const u8 sEmotion_ExclamationMarkGfx[] = INCBIN_U8("graphics/misc/emotion_exclamation.4bpp");
-static const u8 sEmotion_QuestionMarkGfx[] = INCBIN_U8("graphics/misc/emotion_question.4bpp");
-static const u8 sEmotion_HeartGfx[] = INCBIN_U8("graphics/misc/emotion_heart.4bpp");
+static const u8 sEmotion_ExclamationMarkGfx[] = INCBIN_U8("graphics/field_effects/pics/emotion_exclamation.4bpp");
+static const u8 sEmotion_QuestionMarkGfx[] = INCBIN_U8("graphics/field_effects/pics/emotion_question.4bpp");
+static const u8 sEmotion_HeartGfx[] = INCBIN_U8("graphics/field_effects/pics/emotion_heart.4bpp");
 
 static u8 (*const sDirectionalApproachDistanceFuncs[])(struct ObjectEvent *trainerObj, s16 range, s16 x, s16 y) =
 {
@@ -116,7 +115,7 @@ static const struct OamData sOamData_Icons =
     .y = 0,
     .affineMode = ST_OAM_AFFINE_OFF,
     .objMode = ST_OAM_OBJ_NORMAL,
-    .mosaic = 0,
+    .mosaic = FALSE,
     .bpp = ST_OAM_4BPP,
     .shape = SPRITE_SHAPE(16x16),
     .x = 0,
@@ -193,10 +192,8 @@ bool8 CheckForTrainersWantingBattle(void)
 {
     u8 i;
 
-    #ifdef TX_DEBUGGING //DEBUG
-        if (FlagGet(FLAG_SYS_NO_TRAINER_SEE))
-            return FALSE;
-    #endif //
+    if (FlagGet(OW_FLAG_NO_TRAINER_SEE))
+        return FALSE;
 
     gNoOfApproachingTrainers = 0;
     gApproachingTrainerId = 0;
@@ -373,8 +370,6 @@ static u8 GetTrainerApproachDistanceEast(struct ObjectEvent *trainerObj, s16 ran
         return 0;
 }
 
-#define COLLISION_MASK (~1)
-
 static u8 CheckPathBetweenTrainerAndPlayer(struct ObjectEvent *trainerObj, u8 approachDistance, u8 direction)
 {
     s16 x, y;
@@ -391,8 +386,9 @@ static u8 CheckPathBetweenTrainerAndPlayer(struct ObjectEvent *trainerObj, u8 ap
     MoveCoords(direction, &x, &y);
     for (i = 0; i < approachDistance - 1; i++, MoveCoords(direction, &x, &y))
     {
+        // Check for collisions on approach, ignoring the "out of range" collision for regular movement
         collision = GetCollisionFlagsAtCoords(trainerObj, x, y, direction);
-        if (collision != 0 && (collision & COLLISION_MASK))
+        if (collision != 0 && (collision & ~(1 << (COLLISION_OUTSIDE_RANGE - 1))))
             return 0;
     }
 
@@ -667,7 +663,7 @@ void DoTrainerApproach(void)
 static void Task_EndTrainerApproach(u8 taskId)
 {
     DestroyTask(taskId);
-    EnableBothScriptContexts();
+    ScriptContext_Enable();
 }
 
 void TryPrepareSecondApproachingTrainer(void)

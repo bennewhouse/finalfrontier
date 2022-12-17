@@ -30,6 +30,7 @@
 #include "constants/frontier_util.h"
 #include "constants/game_stat.h"
 #include "constants/item.h"
+#include "constants/item_config.h"
 #include "constants/items.h"
 #include "constants/heal_locations.h"
 #include "constants/layouts.h"
@@ -62,7 +63,6 @@
 
 	.section script_data, "aw", %progbits
 
-@ 81DB67C
 	.include "data/script_cmd_table.inc"
 
 gSpecialVars::

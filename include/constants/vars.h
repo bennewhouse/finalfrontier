@@ -46,27 +46,27 @@
 #define VAR_OBJ_GFX_ID_F           0x401F
 
 // general purpose vars
-#define VAR_RECYCLE_GOODS                    0x4020
-#define VAR_REPEL_STEP_COUNT                 0x4021
-#define VAR_ICE_STEP_COUNT                   0x4022
-#define VAR_STARTER_MON                      0x4023 // 0=Treecko, 1=Torchic, 2=Mudkip
-#define VAR_MIRAGE_RND_H                     0x4024
-#define VAR_MIRAGE_RND_L                     0x4025
-#define VAR_SECRET_BASE_MAP                  0x4026
-#define VAR_CYCLING_ROAD_RECORD_COLLISIONS   0x4027
-#define VAR_CYCLING_ROAD_RECORD_TIME_L       0x4028
-#define VAR_CYCLING_ROAD_RECORD_TIME_H       0x4029
-#define VAR_FRIENDSHIP_STEP_COUNTER          0x402A
-#define VAR_POISON_STEP_COUNTER              0x402B
-#define VAR_RESET_RTC_ENABLE                 0x402C
-#define VAR_ENIGMA_BERRY_AVAILABLE           0x402D
-#define VAR_WONDER_NEWS_COUNTER              0x402E
+#define VAR_RECYCLE_GOODS                                0x4020
+#define VAR_REPEL_STEP_COUNT                             0x4021
+#define VAR_ICE_STEP_COUNT                               0x4022
+#define VAR_STARTER_MON                                  0x4023 // 0=Treecko, 1=Torchic, 2=Mudkip
+#define VAR_MIRAGE_RND_H                                 0x4024
+#define VAR_MIRAGE_RND_L                                 0x4025
+#define VAR_SECRET_BASE_MAP                              0x4026
+#define VAR_CYCLING_ROAD_RECORD_COLLISIONS               0x4027
+#define VAR_CYCLING_ROAD_RECORD_TIME_L                   0x4028
+#define VAR_CYCLING_ROAD_RECORD_TIME_H                   0x4029
+#define VAR_FRIENDSHIP_STEP_COUNTER                      0x402A
+#define VAR_POISON_STEP_COUNTER                          0x402B
+#define VAR_RESET_RTC_ENABLE                             0x402C
+#define VAR_ENIGMA_BERRY_AVAILABLE                       0x402D
+#define VAR_WONDER_NEWS_COUNTER                          0x402E
 
-#define VAR_FRONTIER_MANIAC_FACILITY         0x402F
-#define VAR_FRONTIER_GAMBLER_CHALLENGE       0x4030
-#define VAR_FRONTIER_GAMBLER_SET_CHALLENGE   0x4031
-#define VAR_FRONTIER_GAMBLER_AMOUNT_BET      0x4032
-#define VAR_FRONTIER_GAMBLER_STATE           0x4033
+#define VAR_FRONTIER_MANIAC_FACILITY                     0x402F
+#define VAR_FRONTIER_GAMBLER_CHALLENGE                   0x4030
+#define VAR_FRONTIER_GAMBLER_SET_CHALLENGE               0x4031
+#define VAR_FRONTIER_GAMBLER_AMOUNT_BET                  0x4032
+#define VAR_FRONTIER_GAMBLER_STATE                       0x4033
 
 #define VAR_DEOXYS_ROCK_STEP_COUNT           0x4034
 #define VAR_DEOXYS_ROCK_LEVEL                0x4035
@@ -231,7 +231,7 @@
 #define VAR_SS_TIDAL_SCOTT_STATE             0x40D4 // Always equal to FLAG_MET_SCOTT_ON_SS_TIDAL
 #define VAR_ROAMER_POKEMON                   0x40D5 // 0 = Latias, 1 = Latios
 #define VAR_TRAINER_HILL_IS_ACTIVE           0x40D6
-#define VAR_SKY_PILLAR_RAQUAZA_CRY_DONE      0x40D7
+#define VAR_SKY_PILLAR_RAYQUAZA_CRY_DONE      0x40D7
 #define VAR_SOOTOPOLIS_WALLACE_STATE         0x40D8
 #define VAR_HAS_TALKED_TO_SEAFLOOR_CAVERN_ENTRANCE_GRUNT 0x40D9
 #define VAR_REGISTER_BIRCH_STATE             0x40DA
@@ -273,8 +273,8 @@
 #define VAR_UNUSED_0x40FE                    0x40FE // Unused Var
 #define VAR_UNUSED_0x40FF                    0x40FF // Unused Var
 
-#define VARS_END                             0x40FF
-#define VARS_COUNT                           (VARS_END - VARS_START + 1)
+#define VARS_END                                         0x40FF
+#define VARS_COUNT                                       (VARS_END - VARS_START + 1)
 
 #define SPECIAL_VARS_START            0x8000
 // special vars
@@ -303,5 +303,11 @@
 #define VAR_TRAINER_BATTLE_OPPONENT_A 0x8015 // Alias of gTrainerBattleOpponent_A
 
 #define SPECIAL_VARS_END              0x8015
+
+// If an overworld trigger uses this pseudo-variable as the trigger check,
+// then the script will be run using RunScriptImmediately instead of in the
+// global script context. This means it will run faster, but cannot do any
+// cutscenes nor call a wait command. Used for weather effects in vanilla.
+#define TRIGGER_RUN_IMMEDIATELY   0
 
 #endif // GUARD_CONSTANTS_VARS_H

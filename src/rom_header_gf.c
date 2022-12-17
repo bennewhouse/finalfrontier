@@ -6,6 +6,15 @@
 #include "item.h"
 #include "pokeball.h"
 
+// The purpose of this struct is for outside applications to be
+// able to access parts of the ROM or its save file, like a public API.
+// In vanilla, it was used by Colosseum and XD to access pokemon graphics.
+// 
+// If this struct is rearranged in any way, it defeats the purpose of 
+// having it at all. Applications like PKHex or streaming HUDs may find
+// these values useful, so there's some potential benefit to keeping it.
+// If there's a compilation problem below, just comment out the assignment
+// instead of changing this struct.
 struct GFRomHeader
 {
     u32 version;
@@ -15,8 +24,8 @@ struct GFRomHeader
     const struct CompressedSpriteSheet * monBackPics;
     const struct CompressedSpritePalette * monNormalPalettes;
     const struct CompressedSpritePalette * monShinyPalettes;
-    const u8 * const * monIcons;
-    const u8 * monIconPaletteIds;
+    const u8 *const * monIcons;
+    const u8 *monIconPaletteIds;
     const struct SpritePalette * monIconPalettes;
     const u8 (* monSpeciesNames)[];
     const u8 (* moveNames)[];
@@ -24,18 +33,16 @@ struct GFRomHeader
     u32 flagsOffset;
     u32 varsOffset;
     u32 pokedexOffset;
-    #ifndef FREE_EXTRA_SEEN_FLAGS
     u32 seen1Offset;
-    #endif
     u32 seen2Offset;
     u32 pokedexVar;
     u32 pokedexFlag;
     u32 mysteryEventFlag;
     u32 pokedexCount;
-    u8 unk1;
-    u8 unk2;
-    u8 unk3;
-    u8 unk4;
+    u8 playerNameLength;
+    u8 trainerNameLength;
+    u8 pokemonNameLength1;
+    u8 pokemonNameLength2;
     u8 unk5;
     u8 unk6;
     u8 unk7;
@@ -64,7 +71,7 @@ struct GFRomHeader
     u32 unk18;
     const struct BaseStats * baseStats;
     const u8 (* abilityNames)[];
-    const u8 * const * abilityDescriptions;
+    const u8 *const * abilityDescriptions;
     const struct Item * items;
     const struct BattleMove * moves;
     const struct CompressedSpriteSheet * ballGfx;
@@ -84,7 +91,9 @@ struct GFRomHeader
     u32 enigmaBerryOffset;
     #endif
     u32 mapViewOffset;
-    u32 registrability;
+    u32 registrability; //empty/unknown int?
+    u32 enigmaBerrySize; //Keep?
+    const u8 *moveDescriptions;
     u32 unk20;
 };
 
@@ -110,28 +119,30 @@ static const struct GFRomHeader sGFRomHeader = {
     .pokedexOffset = offsetof(struct SaveBlock2, pokedex),
     #ifndef FREE_EXTRA_SEEN_FLAGS
     .seen1Offset = offsetof(struct SaveBlock1, seen1),
+    .seen2Offset = offsetof(struct SaveBlock1, seen1), // dex flags are combined, just provide the same pointer
     #endif
     .pokedexVar = VAR_NATIONAL_DEX - VARS_START,
     .pokedexFlag = FLAG_RECEIVED_POKEDEX_FROM_BIRCH,
     .mysteryEventFlag = FLAG_SYS_MYSTERY_EVENT_ENABLE,
     .pokedexCount = NATIONAL_DEX_COUNT,
-    .unk1 = 0x07,
-    .unk2 = 0x0a,
-    .unk3 = 0x0a,
-    .unk4 = 0x0a,
-    .unk5 = 0x0c,
-    .unk6 = 0x0c,
-    .unk7 = 0x06,
-    .unk8 = 0x0c,
-    .unk9 = 0x06,
-    .unk10 = 0x10,
-    .unk11 = 0x12,
-    .unk12 = 0x0c,
-    .unk13 = 0x0f,
-    .unk14 = 0x0b,
-    .unk15 = 0x01,
-    .unk16 = 0x08,
-    .unk17 = 0x0c,
+    .playerNameLength = PLAYER_NAME_LENGTH,
+    .trainerNameLength = TRAINER_NAME_LENGTH,
+    .pokemonNameLength1 = POKEMON_NAME_LENGTH,
+    .pokemonNameLength2 = POKEMON_NAME_LENGTH,
+    // Two of the below 12s are likely move/ability name length, given their presence in this header
+    .unk5 = 12,
+    .unk6 = 12,
+    .unk7 = 6,
+    .unk8 = 12,
+    .unk9 = 6,
+    .unk10 = 16,
+    .unk11 = 18,
+    .unk12 = 12,
+    .unk13 = 15,
+    .unk14 = 11,
+    .unk15 = 1,
+    .unk16 = 8,
+    .unk17 = 12,
     .saveBlock2Size = sizeof(struct SaveBlock2),
     .saveBlock1Size = sizeof(struct SaveBlock1),
     .partyCountOffset = offsetof(struct SaveBlock1, playerPartyCount),
@@ -167,6 +178,8 @@ static const struct GFRomHeader sGFRomHeader = {
     .enigmaBerryOffset = offsetof(struct SaveBlock1, enigmaBerry),
     #endif
     .mapViewOffset = offsetof(struct SaveBlock1, mapView),
-    .registrability = 0x00000000,
+    .registrability = 0x00000000, //here
+    .enigmaBerrySize = sizeof(struct EnigmaBerry),
+    .moveDescriptions = NULL,
     .unk20 = 0x00000000, // 0xFFFFFFFF in FRLG
 };

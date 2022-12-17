@@ -1,4 +1,4 @@
-const u32 *const gItemIconTable[][2] =
+const u32 *const gItemIconTable[ITEMS_COUNT + 1][2] =
 {
     [ITEM_NONE] = {gItemIcon_QuestionMark, gItemIconPalette_QuestionMark},
     // Poké Balls
@@ -316,7 +316,6 @@ const u32 *const gItemIconTable[][2] =
     // Colored Orbs
     [ITEM_RED_ORB] = {gItemIcon_RedOrb, gItemIconPalette_RedOrb},
     [ITEM_BLUE_ORB] = {gItemIcon_BlueOrb, gItemIconPalette_BlueOrb},
-    [ITEM_JADE_ORB] = {gItemIcon_JadeOrb, gItemIconPalette_JadeOrb},
     // Mega Stones
     [ITEM_VENUSAURITE] = {gItemIcon_Venusaurite, gItemIconPalette_Venusaurite},
     [ITEM_CHARIZARDITE_X] = {gItemIcon_CharizarditeX, gItemIconPalette_CharizarditeX},
@@ -747,7 +746,6 @@ const u32 *const gItemIconTable[][2] =
     [ITEM_N_LUNARIZER] = {gItemIcon_NecrozmaFuser, gItemIconPalette_NLunarizer},
     [ITEM_REINS_OF_UNITY] = {gItemIcon_ReinsOfUnity, gItemIconPalette_ReinsOfUnity},
     // Battle Mechanic Key Items
-    [ITEM_KEY_STONE] = {gItemIcon_KeyStone, gItemIconPalette_KeyStone},
     [ITEM_MEGA_RING] = {gItemIcon_MegaRing, gItemIconPalette_MegaRing},
     [ITEM_Z_POWER_RING] = {gItemIcon_ZPowerRing, gItemIconPalette_ZPowerRing},
     [ITEM_DYNAMAX_BAND] = {gItemIcon_DynamaxBand, gItemIconPalette_DynamaxBand},
@@ -806,5 +804,5 @@ const u32 *const gItemIconTable[][2] =
     [ITEM_RUBY] = {gItemIcon_Gem, gItemIconPalette_Ruby},
     [ITEM_SAPPHIRE] = {gItemIcon_Gem, gItemIconPalette_Sapphire},
     // Return to field arrow
-    [ITEM_FIELD_ARROW] = {gItemIcon_ReturnToFieldArrow, gItemIconPalette_ReturnToFieldArrow},
+    [ITEMS_COUNT] = {gItemIcon_ReturnToFieldArrow, gItemIconPalette_ReturnToFieldArrow},
 };

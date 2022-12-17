@@ -664,16 +664,16 @@ static bool8 DexNavPickTile(u8 environment, u8 areaX, u8 areaY, bool8 smallScan)
                 {
                     if (currMapType == MAP_TYPE_UNDERGROUND)
                     { // inside (cave)
-                        if (IsZCoordMismatchAt(gObjectEvents[gPlayerAvatar.spriteId].currentElevation, topX, topY))
+                        if (IsElevationMismatchAt(gObjectEvents[gPlayerAvatar.spriteId].currentElevation, topX, topY))
                             break; //occurs at same z coord
                         
                         scale = 440 - (smallScan * 200) - (GetPlayerDistance(topX, topY) / 2)  - (2 * (topX + topY));
-                        weight = ((Random() % scale) < 1) && !MapGridIsImpassableAt(topX, topY);
+                        weight = ((Random() % scale) < 1) && !MapGridGetCollisionAt(topX, topY);
                     }
                     else
                     { // outdoors: grass
                         scale = 100 - (GetPlayerDistance(topX, topY) * 2);
-                        weight = (Random() % scale <= 5) && !MapGridIsImpassableAt(topX, topY);
+                        weight = (Random() % scale <= 5) && !MapGridGetCollisionAt(topX, topY);
                     }
                 }
                 break;
@@ -681,10 +681,10 @@ static bool8 DexNavPickTile(u8 environment, u8 areaX, u8 areaY, bool8 smallScan)
                 if (MetatileBehavior_IsSurfableWaterOrUnderwater(tileBehaviour))
                 {
                     u8 scale = 320 - (smallScan * 200) - (GetPlayerDistance(topX, topY) / 2);
-                    if (IsZCoordMismatchAt(gObjectEvents[gPlayerAvatar.spriteId].currentElevation, topX, topY))
+                    if (IsElevationMismatchAt(gObjectEvents[gPlayerAvatar.spriteId].currentElevation, topX, topY))
                         break;
 
-                    weight = (Random() % scale <= 1) && !MapGridIsImpassableAt(topX, topY);
+                    weight = (Random() % scale <= 1) && !MapGridGetCollisionAt(topX, topY);
                 }
                 break;
             default:
@@ -862,7 +862,7 @@ static void Task_InitDexNavSearch(u8 taskId)
     {
         Free(sDexNavSearchDataPtr);
         FreeMonIconPalettes();
-        ScriptContext1_SetupScript(EventScript_TooDark);
+        ScriptContext_SetupScript(EventScript_TooDark);
         DestroyTask(taskId);
         return;
     }
@@ -871,7 +871,7 @@ static void Task_InitDexNavSearch(u8 taskId)
     {
         Free(sDexNavSearchDataPtr);
         FreeMonIconPalettes();
-        ScriptContext1_SetupScript(EventScript_NotFoundNearby);
+        ScriptContext_SetupScript(EventScript_NotFoundNearby);
         DestroyTask(taskId);
         return;
     }
@@ -993,7 +993,7 @@ static void EndDexNavSearchSetupScript(const u8 *script, u8 taskId)
 {
     gSaveBlock1Ptr->dexNavChain = 0;   //reset chain
     EndDexNavSearch(taskId);
-    ScriptContext1_SetupScript(script);
+    ScriptContext_SetupScript(script);
 }
 
 static u8 GetMovementProximityBySearchLevel(void)
@@ -1081,7 +1081,7 @@ static void Task_DexNavSearch(u8 taskId)
         return;
     }
     
-    if (ScriptContext2_IsEnabled() == TRUE)
+    if (ScriptContext_IsEnabled() == TRUE) //Change from ScriptContext2
     { // check if script just executed
         //gSaveBlock1Ptr->dexNavChain = 0;  //issue with reusable repels
         EndDexNavSearch(taskId);
@@ -1104,7 +1104,7 @@ static void Task_DexNavSearch(u8 taskId)
         
         FlagClear(FLAG_SYS_DEXNAV_SEARCH);
         gDexnavBattle = TRUE;        
-        ScriptContext1_SetupScript(EventScript_StartDexNavBattle);
+        ScriptContext_SetupScript(EventScript_StartDexNavBattle);
         Free(sDexNavSearchDataPtr);
         DestroyTask(taskId);
         return;
@@ -1341,8 +1341,8 @@ static u16 DexNavGenerateHeldItem(u16 species, u8 searchLevel)
 {
     u16 randVal = Random() % 100;
     u8 searchLevelInfluence = searchLevel >> 1;
-    u16 item1 = gBaseStats[species].item1;
-    u16 item2 = gBaseStats[species].item2;
+    u16 item1 = gBaseStats[species].itemCommon;
+    u16 item2 = gBaseStats[species].itemRare;
     
     // if both are the same, 100% to hold
     if (item1 == item2)
@@ -1417,7 +1417,7 @@ static u8 DexNavGetAbilityNum(u16 species, u8 searchLevel)
     #ifdef BATTLE_ENGINE    // if using RHH, the base stats abilities field is expanded
     if (genAbility && gBaseStats[species].abilities[2] != ABILITY_NONE && GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT))
     #else
-    if (genAbility && gBaseStats[species].abilityHidden != ABILITY_NONE && GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT))
+    if (genAbility && gBaseStats[species].abilities[3] != ABILITY_NONE && GetSetPokedexFlag(SpeciesToNationalPokedexNum(species), FLAG_GET_CAUGHT)) /// was abilityHidden
     #endif
     {
         //Only give hidden ability if Pokemon has been caught before
@@ -1868,7 +1868,7 @@ static void CB1_InitDexNavSearch(void)
 {
     u8 taskId;
     
-    if (!gPaletteFade.active && !ScriptContext2_IsEnabled() && gMain.callback2 == CB2_Overworld)
+    if (!gPaletteFade.active && !ScriptContext_IsEnabled() && gMain.callback2 == CB2_Overworld) //Change from ScriptContext2
     {
         SetMainCallback1(CB1_Overworld);
         taskId = CreateTask(Task_InitDexNavSearch, 0);
@@ -2177,8 +2177,8 @@ static void PrintCurrentSpeciesInfo(void)
         if (gBaseStats[species].abilities[2] != ABILITY_NONE)
             AddTextPrinterParameterized3(WINDOW_INFO, 0, 0, HA_INFO_Y, sFontColor_Black, 0, gAbilityNames[gBaseStats[species].abilities[2]]);
         #else
-        if (gBaseStats[species].abilityHidden != ABILITY_NONE)           
-            AddTextPrinterParameterized3(WINDOW_INFO, 0, 0, HA_INFO_Y, sFontColor_Black, 0, gAbilityNames[gBaseStats[species].abilityHidden]);
+        if (gBaseStats[species].abilities[3]  != ABILITY_NONE)  //was abilityHidden     
+            AddTextPrinterParameterized3(WINDOW_INFO, 0, 0, HA_INFO_Y, sFontColor_Black, 0, gAbilityNames[gBaseStats[species].abilities[3]]);
         #endif
         else
             AddTextPrinterParameterized3(WINDOW_INFO, 0, 0, HA_INFO_Y, sFontColor_Black, 0, gText_None);
