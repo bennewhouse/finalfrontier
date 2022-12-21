@@ -208,6 +208,12 @@ int ProcessPlayerFieldInput(struct FieldInput *input)
     if (input->pressedSelectButton && UseRegisteredKeyItemOnField() == TRUE)
         return TRUE;
 
+    if (input->pressedRButton && TryStartDexnavSearch())
+        return TRUE;
+    
+    if (input->pressedLButton && EnableAutoRun())
+        return TRUE; 
+
 #if DEBUG_SYSTEM_ENABLE == TRUE && DEBUG_SYSTEM_IN_MENU == FALSE
     if (input->input_field_1_2)
     {
