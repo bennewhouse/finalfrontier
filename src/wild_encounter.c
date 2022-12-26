@@ -4,6 +4,8 @@
 #include "metatile_behavior.h"
 #include "fieldmap.h"
 #include "random.h"
+#include "rtc.h"
+#include "dns.h"
 #include "field_player_avatar.h"
 #include "event_data.h"
 #include "safari_zone.h"
@@ -353,7 +355,11 @@ static u8 ChooseWildMonLevel(const struct WildPokemon *wildPokemon, u8 wildMonIn
 u16 GetCurrentMapWildMonHeaderId(void)
 {
     u16 i;
+    u8 timeOfDay;
+    u16 retval = -1;
 
+    RtcCalcLocalTime();
+    timeOfDay = GetCurrentTimeOfDay();
     for (i = 0; ; i++)
     {
         const struct WildPokemonHeader *wildHeader = &gWildMonHeaders[i];
@@ -373,11 +379,16 @@ u16 GetCurrentMapWildMonHeaderId(void)
                 i += alteringCaveId;
             }
 
-            return i;
+            if (timeOfDay == gWildMonHeaders[i].timeOfDay)
+                return i;
+            else if (gWildMonHeaders[i].timeOfDay == TIME_DAY)
+                // If an encounter table doesn't exist for 
+                // the current time, use the default "day" one.
+                retval = i;
         }
     }
 
-    return HEADER_NONE;
+    return retval;
 }
 
 static u8 PickWildMonNature(void)

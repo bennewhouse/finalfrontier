@@ -23,16 +23,7 @@
  * options, to understand how the dns works.            *
  * ******************************************************/
  
-/* Timelapses */
-enum
-{
-    TIME_MIDNIGHT,
-    TIME_DAWN,
-    TIME_DAY,
-    TIME_SUNSET,
-    TIME_NIGHTFALL,
-    TIME_NIGHT
-};
+
 
 /* End hours for each of the timelapses */
 #define MIDNIGHT_END_HOUR   7       //00 - 07
@@ -55,46 +46,43 @@ enum
  * "light colour".                                                  */
 const struct LightingColour gLightingColours[] =
 {
-    {
-        .paletteNum = 0,
-        .colourNum = 1,
-        .lightColour = RGB2(30, 30, 5),
-    },
-    {
-        .paletteNum = 0,
-        .colourNum = 2,
-        .lightColour = RGB2(26, 25, 4),
-    },
-    {
-        .paletteNum = 0,
-        .colourNum = 3,
-        .lightColour = RGB2(22, 21, 3),
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 1,
-        .lightColour = RGB2(30, 30, 5),
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 2,
-        .lightColour = RGB2(26, 25, 4),
-    },
-    {
-        .paletteNum = 6,
-        .colourNum = 1,
-        .lightColour = RGB2(30, 30, 5),
-    },
-    {
-        .paletteNum = 6,
-        .colourNum = 2,
-        .lightColour = RGB2(26, 25, 4),
-    },
-    {
-        .paletteNum = 6,
-        .colourNum = 3,
-        .lightColour = RGB2(22, 21, 3),
-    },
+    //76AC-blue window/door
+    //6ED3 gray underneath blue
+    //7337- gray part of door
+    //7FFF nearly white- for gym door
+    //6ED3 - light blue for gym
+    //779B - light gray/white of window
+    // {
+    //     .paletteNum = 1,
+    //     .colourNum = 10, 
+    //     .lightColour = RGB2(30, 30, 5), 
+    // },
+    // {
+    //     .paletteNum = 0,
+    //     .colourNum = 4, 
+    //     .lightColour = RGB2(26, 25, 4),
+    // },
+    // {
+    //     .paletteNum = 0,
+    //     .colourNum = 3, 
+    //     .lightColour = RGB2(22, 21, 3),
+    // },
+    // {
+    //     .paletteNum = 1,
+    //     .colourNum = 1, 
+    //     .lightColour = RGB2(30, 30, 5), 
+    // },
+    // {
+    //     .paletteNum = 1,
+    //     .colourNum = 2, 
+    //     .lightColour = RGB2(26, 25, 4),
+    // },
+    // {
+    //     .paletteNum = 1,
+    //     .colourNum = 9, 
+    //     .lightColour = RGB2(22, 21, 3),
+    // },
+
 };
 
 /* Maptypes that are not affected by DNS */
@@ -486,23 +474,38 @@ static u16 GetDNSFilter()
 
 static void DoDnsLightning()
 {
-    u8 i;
+    //Uncomment if want to add replacement
+    // u8 i;
 
-    for (i = 0; i < sizeof(gLightingColours)/sizeof(gLightingColours[0]); i++)
-    {
-        u16 colourSlot = gLightingColours[i].paletteNum * 16 + gLightingColours[i].colourNum;
+    // for (i = 0; i < sizeof(gLightingColours)/sizeof(gLightingColours[0]); i++)
+    // {
+    //     u16 colourSlot = gLightingColours[i].paletteNum * 16 + gLightingColours[i].colourNum;
         
-        if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot] != 0x0000)
-        {
-            sDnsPaletteDmaBuffer[colourSlot] = gPlttBufferFaded[colourSlot];
-            gPlttBufferUnfaded[colourSlot] = gLightingColours[i].lightColour;
-        }
-        else
-        {
-            sDnsPaletteDmaBuffer[colourSlot] = gLightingColours[i].lightColour;
-        }
-    }
+    //     if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot] != 0x0000)
+    //     {
+    //         sDnsPaletteDmaBuffer[colourSlot] = gPlttBufferFaded[colourSlot];
+    //         gPlttBufferUnfaded[colourSlot] = gLightingColours[i].lightColour;
+    //     }
+    //     else
+    //     {
+    //         sDnsPaletteDmaBuffer[colourSlot] = gLightingColours[i].lightColour;
+    //     }
+    // }
 }
+
+//For wild pokemon header
+u8 GetCurrentTimeOfDay(void)
+{
+    u8 hour = gLocalTime.hours;  //0 to 24
+
+    if (hour < 8)
+        return TIME_NIGHT;
+    else if (hour < 20)
+        return TIME_DAY;
+    else 
+        return TIME_NIGHT;
+}
+
 
 //Returns Dns time lapse
 u8 GetDnsTimeLapse(u8 hour)
