@@ -278,7 +278,7 @@ void FieldCB_DefaultWarpExit(void)
     FollowMe_WarpSetEnd(); //kept
     
     ScriptContext_Enable(); //Change from ScriptContext2
-    LockPlayerFieldControls();
+    ///LockPlayerFieldControls() now in above function
 }
 
 void FieldCB_WarpExitFadeFromWhite(void)
@@ -339,6 +339,8 @@ static void Task_ExitDoor(u8 taskId)
             u8 objEventId;
             SetPlayerVisibility(TRUE);
             objEventId = GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0);
+            ObjectEventClearHeldMovementIfActive(&gObjectEvents[objEventId]);
+            objEventId = GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0);
             ObjectEventSetHeldMovement(&gObjectEvents[objEventId], MOVEMENT_ACTION_WALK_NORMAL_DOWN);
             task->tState = 2;
         }
@@ -390,6 +392,8 @@ static void Task_ExitNonAnimDoor(u8 taskId)
         {
             u8 objEventId;
             SetPlayerVisibility(TRUE);
+            objEventId = GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0);
+            ObjectEventClearHeldMovementIfActive(&gObjectEvents[objEventId]);
             objEventId = GetObjectEventIdByLocalIdAndMap(OBJ_EVENT_ID_PLAYER, 0, 0);
             ObjectEventSetHeldMovement(&gObjectEvents[objEventId], GetWalkNormalMovementAction(GetPlayerFacingDirection()));
             task->tState = 2;

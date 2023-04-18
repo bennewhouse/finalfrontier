@@ -8,6 +8,7 @@
 #include "rtc.h"
 #include "constants/map_types.h"
 #include "constants/rgb.h"
+#include "constants/layouts.h"
 
   /*******************************************************/
  /*********    Day and Night Configuration     **********/
@@ -52,38 +53,59 @@ const struct LightingColour gLightingColours[] =
     //7FFF nearly white- for gym door
     //6ED3 - light blue for gym
     //779B - light gray/white of window
-    // {
-    //     .paletteNum = 1,
-    //     .colourNum = 10, 
-    //     .lightColour = RGB2(30, 30, 5), 
-    // },
-    // {
-    //     .paletteNum = 0,
-    //     .colourNum = 4, 
-    //     .lightColour = RGB2(26, 25, 4),
-    // },
-    // {
-    //     .paletteNum = 0,
-    //     .colourNum = 3, 
-    //     .lightColour = RGB2(22, 21, 3),
-    // },
-    // {
-    //     .paletteNum = 1,
-    //     .colourNum = 1, 
-    //     .lightColour = RGB2(30, 30, 5), 
-    // },
-    // {
-    //     .paletteNum = 1,
-    //     .colourNum = 2, 
-    //     .lightColour = RGB2(26, 25, 4),
-    // },
-    // {
-    //     .paletteNum = 1,
-    //     .colourNum = 9, 
-    //     .lightColour = RGB2(22, 21, 3),
-    // },
+    {
+        .paletteNum = 1,
+        .colourNum = 10, //77ac
+        .lightColour = RGB2(30, 30, 5), 
+    },
+    {
+        .paletteNum = 1,
+        .colourNum = 4, //6ed3  
+        .lightColour = RGB2(26, 25, 4),
+    },
+    {
+        .paletteNum = 1,
+        .colourNum = 3, //7337
+        .lightColour = RGB2(22, 21, 3),
+    },
+    {
+        .paletteNum = 1,
+        .colourNum = 9, //7AEE  
+        .lightColour = RGB2(30, 30, 5), 
+    },
+    {
+        .paletteNum = 1,
+        .colourNum = 2, //779B 
+        .lightColour = RGB2(26, 25, 4),
+    },
+    {
+        .paletteNum = 5,
+        .colourNum = 10, //7AC just for mart tops 
+        .lightColour = RGB2(30, 30, 5),
+    },
 
 };
+
+const struct LightingColour gLightingBlank[] =
+{
+    // {.paletteNum = 1, .colourNum = 10, .lightColour = RGB2(30, 30, 5), }, example 
+
+    {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(30, 30, 5), },
+
+};
+//work to be done
+const struct LightingColour gLightingBattleFrontierWest[] =
+{
+
+    {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(26, 25, 4), },
+    {.paletteNum = 9, .colourNum = 3, .lightColour = RGB2(22, 21, 3), },
+    {.paletteNum = 12, .colourNum = 3, .lightColour = RGB2(30, 30, 5), },
+    {.paletteNum = 12, .colourNum = 4, .lightColour = RGB2(26, 25, 4), },
+
+};
+
+
+
 
 /* Maptypes that are not affected by DNS */
 const u8 gDnsMapExceptions[] =
@@ -354,13 +376,42 @@ const u16 gPaletteTagExceptions[] =
 //Functions
 static u16 DnsApplyFilterToColour(u16 colour, u16 filter);
 static u16 DnsApplyProportionalFilterToColour(u16 colour, u16 filter);
-static void DoDnsLightning();
+static void DoDnsLightning(const struct LightingColour*, u16 size);
 static u16 GetDNSFilter();
 static bool8 IsMapDNSException();
 static bool8 IsSpritePaletteTagDnsException(u8 palNum);
 static bool8 IsOverworld();
 static bool8 IsCombat();
 static bool8 IsLightActive();
+const struct LightingColour* GetIdForSecondaryTileset(); 
+
+
+const struct LightingColour* GetIdForSecondaryTileset()
+{
+    u16 secondaryID = gMapHeader.mapLayoutId;
+    switch (secondaryID)
+    {
+        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
+            return gLightingBattleFrontierWest;
+        default:
+            return NULL; 
+    }
+}
+
+const u16 GetSizeOfLightingColour()
+{
+    u16 size;
+    u16 secondaryID = gMapHeader.mapLayoutId;
+    switch (secondaryID)
+    {
+        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
+            size = sizeof(gLightingBattleFrontierWest) / sizeof(gLightingBattleFrontierWest[0]);
+            return size; 
+        default:
+            return 0; 
+    }
+}
+
 
 //Dns palette buffer in EWRAM
 ALIGNED(4) EWRAM_DATA static u16 sDnsPaletteDmaBuffer[512] = {0};
@@ -396,6 +447,9 @@ void DnsApplyFilters()
     u16 colour, rgbFilter;
     struct DnsPalExceptions palExceptionFlags;
 
+    const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
+    const u16 size = GetSizeOfLightingColour(); 
+
     rgbFilter = GetDNSFilter();
 
     palExceptionFlags = gMain.inBattle ? gCombatPalExceptions : gOWPalExceptions;   //Init pal exception slots
@@ -409,7 +463,11 @@ void DnsApplyFilters()
                 sDnsPaletteDmaBuffer[palNum * 16 + colNum] = gPlttBufferFaded[palNum * 16 + colNum];      
 
     if (!IsMapDNSException() && IsLightActive() && !gMain.inBattle)
-        DoDnsLightning();
+        
+        if (gSecondaryTilesetLightingColour != NULL)
+        {
+            DoDnsLightning(gSecondaryTilesetLightingColour, size);
+        }
 }
 
 //Applies filter to a colour. Filters RGB channels are substracted from colour RGB channels.
@@ -472,25 +530,50 @@ static u16 GetDNSFilter()
     return 0;
 }
 
-static void DoDnsLightning()
+static void DoDnsLightning(const struct LightingColour* gSecondaryTilesetLightingColour, u16 size)
 {
-    //Uncomment if want to add replacement
-    // u8 i;
+    //Primary Tileset Replacement for Overworld
+    u8 i;
+    u8 j;
+    //Map Specific Lighting Replacements
+    //const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
+ 
+    
 
-    // for (i = 0; i < sizeof(gLightingColours)/sizeof(gLightingColours[0]); i++)
-    // {
-    //     u16 colourSlot = gLightingColours[i].paletteNum * 16 + gLightingColours[i].colourNum;
+    for (i = 0; i < sizeof(gLightingColours)/sizeof(gLightingColours[0]); i++)
+    {
+        u16 colourSlot = gLightingColours[i].paletteNum * 16 + gLightingColours[i].colourNum;
         
-    //     if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot] != 0x0000)
-    //     {
-    //         sDnsPaletteDmaBuffer[colourSlot] = gPlttBufferFaded[colourSlot];
-    //         gPlttBufferUnfaded[colourSlot] = gLightingColours[i].lightColour;
-    //     }
-    //     else
-    //     {
-    //         sDnsPaletteDmaBuffer[colourSlot] = gLightingColours[i].lightColour;
-    //     }
-    // }
+        if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot] != 0x0000)
+        {
+            sDnsPaletteDmaBuffer[colourSlot] = gPlttBufferFaded[colourSlot];
+            gPlttBufferUnfaded[colourSlot] = gLightingColours[i].lightColour;
+        }
+        else
+        {
+            sDnsPaletteDmaBuffer[colourSlot] = gLightingColours[i].lightColour;
+        }
+    }
+
+    if (gSecondaryTilesetLightingColour != NULL){
+    for (j = 0; j < size; j++)
+    {
+        u16 colourSlot2 = gSecondaryTilesetLightingColour[j].paletteNum * 16 + gSecondaryTilesetLightingColour[j].colourNum;
+        
+        if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot2] != 0x0000)
+        {
+            sDnsPaletteDmaBuffer[colourSlot2] = gPlttBufferFaded[colourSlot2];
+            gPlttBufferUnfaded[colourSlot2] = gSecondaryTilesetLightingColour[j].lightColour;
+        }
+        else
+        {
+                sDnsPaletteDmaBuffer[colourSlot2] = gSecondaryTilesetLightingColour[j].lightColour;
+        }
+    }
+    }
+ 
+    
+
 }
 
 //For wild pokemon header

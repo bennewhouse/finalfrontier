@@ -1292,10 +1292,10 @@ u8 GetFirstInactiveObjectEventId(void)
 
 u8 GetObjectEventIdByLocalIdAndMap(u8 localId, u8 mapNum, u8 mapGroupId)
 {
-    if (localId == OBJ_EVENT_ID_FOLLOWER)
-        return GetFollowerObjectId();
-    else if (localId < OBJ_EVENT_ID_PLAYER)
+    if (localId < OBJ_EVENT_ID_PLAYER)
         return GetObjectEventIdByLocalIdAndMapInternal(localId, mapNum, mapGroupId);
+    else if (localId == OBJ_EVENT_ID_FOLLOWER)
+        return GetFollowerObjectId();
 
     return GetObjectEventIdByLocalId(localId);
 }
