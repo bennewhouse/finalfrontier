@@ -57,6 +57,7 @@
 #include "constants/weather.h"
 #include "constants/quests.h"
 #include "constants/follow_me.h"
+#include "constants/dns.h"
 	.include "asm/macros.inc"
 	.include "asm/macros/event.inc"
 	.include "constants/constants.inc"

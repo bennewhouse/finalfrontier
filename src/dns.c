@@ -1,678 +1,303 @@
 #include "global.h"
-#include "main.h"
 #include "dns.h"
-#include "palette.h"
-#include "start_menu.h"
+#include "decompress.h"
+#include "event_data.h"
+#include "field_tasks.h"
+#include "field_weather.h"
 #include "overworld.h"
-#include "battle_main.h"
+#include "palette.h"
 #include "rtc.h"
-#include "constants/map_types.h"
+#include "constants/dns.h"
+#include "constants/region_map_sections.h"
 #include "constants/rgb.h"
-#include "constants/layouts.h"
+#include "strings.h"
+#include "string_util.h"
+#include "fieldmap.h"
 
-  /*******************************************************/
- /*********    Day and Night Configuration     **********/
-/********************************************************
- * You can customize the DNS by editing the following   *
- * timelapses and the filters used to change the        *
- * palette colours.                                     *
- * In addition to that, you can also configure which    *
- * palettes are affected by the system, as well as      *
- * establishing sprite palettes exceptions by its TAG.  *
- * 
- * It is highly recommended to read the following config*
- * options, to understand how the dns works.            *
- * ******************************************************/
- 
+#define TINT_MORNING Q_8_8(0.7), Q_8_8(0.7), Q_8_8(0.9)
+#define TINT_DAY Q_8_8(1.0), Q_8_8(1.0), Q_8_8(1.0)
+#define TINT_NIGHT Q_8_8(0.6), Q_8_8(0.6), Q_8_8(0.92)
 
+EWRAM_DATA u16 gPlttBufferPreDN[PLTT_BUFFER_SIZE] = {0};
+EWRAM_DATA const struct PaletteOverride *gPaletteOverrides[4] = {NULL};
 
-/* End hours for each of the timelapses */
-#define MIDNIGHT_END_HOUR   7       //00 - 07
-#define DAWN_END_HOUR       8       //07 - 08
-#define DAY_END_HOUR        19      //08 - 19
-#define SUNSET_END_HOUR     20      //19 - 20
-#define NIGHTFALL_END_HOUR  21      //20 - 21
-#define NIGHT_END_HOUR      0       //21 - 00
+static EWRAM_DATA struct {
+    bool8 initialized:1;
+    bool8 retintPhase:1;
+    u8 timeOfDay;
+    u16 prevTintPeriod; // tint period associated with currently drawn palettes
+    u16 currTintPeriod; // tint period associated with currRGBTint
+    u16 currRGBTint[3];
+} sDNSystemControl = {0};
 
-/* Start and end hour of the lightning system.
- * This system is generally used for building's windows. */
-#define LIGHTNING_START_HOUR    NIGHTFALL_END_HOUR
-#define LIGHTNING_END_HOUR      MIDNIGHT_END_HOUR
-
-/* This array contains the colours used for the windows or          *
- * other tiles that have to be illuminated at night.                *
- * You can add or remove light slots as you whish, each entry       *
- * requires the paletteNum and the colourNum of each colour slot,   *
- * as well as the RGB 15 bit colour that's gonna be used as         *
- * "light colour".                                                  */
-const struct LightingColour gLightingColours[] =
-{
-    //76AC-blue window/door
-    //6ED3 gray underneath blue
-    //7337- gray part of door
-    //7FFF nearly white- for gym door
-    //6ED3 - light blue for gym
-    //779B - light gray/white of window
-    {
-        .paletteNum = 1,
-        .colourNum = 10, //77ac
-        .lightColour = RGB2(30, 30, 5), 
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 4, //6ed3  
-        .lightColour = RGB2(26, 25, 4),
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 3, //7337
-        .lightColour = RGB2(22, 21, 3),
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 9, //7AEE  
-        .lightColour = RGB2(30, 30, 5), 
-    },
-    {
-        .paletteNum = 1,
-        .colourNum = 2, //779B 
-        .lightColour = RGB2(26, 25, 4),
-    },
-    {
-        .paletteNum = 5,
-        .colourNum = 10, //7AC just for mart tops 
-        .lightColour = RGB2(30, 30, 5),
-    },
-
+static const u16 sTimeOfDayTints[][3] = {
+    [0] =   {TINT_NIGHT},
+    [1] =   {TINT_NIGHT},
+    [2] =   {TINT_NIGHT},
+    [3] =   {TINT_NIGHT},
+    [4] =   {Q_8_8(0.6), Q_8_8(0.65), Q_8_8(1.0)},
+    [5] =   {TINT_MORNING},
+    [6] =   {TINT_MORNING},
+    [7] =   {TINT_MORNING},
+    [8] =   {Q_8_8(0.9), Q_8_8(0.85), Q_8_8(1.0)},
+    [9] =   {Q_8_8(1.0), Q_8_8(0.9), Q_8_8(1.0)},
+    [10] =  {TINT_DAY},
+    [11] =  {TINT_DAY},
+    [12] =  {TINT_DAY},
+    [13] =  {TINT_DAY},
+    [14] =  {TINT_DAY},
+    [15] =  {TINT_DAY},
+    [16] =  {TINT_DAY},
+    [17] =  {Q_8_8(1.0), Q_8_8(0.98), Q_8_8(0.9)},
+    [18] =  {Q_8_8(0.9), Q_8_8(0.7), Q_8_8(0.67)},
+    [19] =  {Q_8_8(0.75), Q_8_8(0.66), Q_8_8(0.77)},
+    [20] =  {Q_8_8(0.7), Q_8_8(0.63), Q_8_8(0.82)},
+    [21] =  {TINT_NIGHT},
+    [22] =  {TINT_NIGHT},
+    [23] =  {TINT_NIGHT},
 };
 
-const struct LightingColour gLightingBlank[] =
-{
-    // {.paletteNum = 1, .colourNum = 10, .lightColour = RGB2(30, 30, 5), }, example 
-    {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(30, 30, 5), },
-};
-//work to be done
-const struct LightingColour gLightingBattleFrontierWest[] =
-{
-    {.paletteNum = 9, .colourNum = 1, .lightColour = RGB2(31, 31, 31), }, //white NOTE: REDO WINDOWS IF WANT
-    {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(26, 25, 4), },
-    {.paletteNum = 9, .colourNum = 3, .lightColour = RGB2(22, 21, 3), },
-    {.paletteNum = 12, .colourNum = 1, .lightColour = RGB2(31, 31, 31), }, //white
-    {.paletteNum = 12, .colourNum = 2, .lightColour = RGB2(26, 25, 4), },
-    {.paletteNum = 12, .colourNum = 3, .lightColour = RGB2(30, 30, 5), },
-    {.paletteNum = 12, .colourNum = 4, .lightColour = RGB2(26, 25, 4), },
-};
-
-const struct LightingColour gLightingBattleFrontierEast[] =
-{
-    {.paletteNum = 12, .colourNum = 15, .lightColour = RGB2(26, 25, 4), },
-    //{.paletteNum = 10, .colourNum = 6, .lightColour = RGB2(26, 25 , 4), }, 
-};
-
-const struct LightingColour gLightingPetalburg[] =
-{
-    //{.paletteNum = 0, .colourNum = 11, .lightColour = RGB2(30, 30, 5), },
-    // {.paletteNum = 0, .colourNum = 12, .lightColour = RGB2(26, 25, 4), }, 
-    // {.paletteNum = 0, .colourNum = 13, .lightColour = RGB2(26, 25, 4), }, 
-    // {.paletteNum = 0, .colourNum = 14, .lightColour = RGB2(22, 21, 3), }, 
-};
-
-
-
-
-
-/* Maptypes that are not affected by DNS */
-const u8 gDnsMapExceptions[] =
-{
-    MAP_TYPE_NONE,
-    MAP_TYPE_INDOOR,
-    MAP_TYPE_UNDERGROUND,
-    MAP_TYPE_SECRET_BASE,
-};
-
-/* Configure each palette slot to be affected or not by DNS *
- * while you are in the overworld.                          */
-const struct DnsPalExceptions gOWPalExceptions = 
-{
-    .pal = {
-        DNS_PAL_ACTIVE,     //0
-        DNS_PAL_ACTIVE,     //1
-        DNS_PAL_ACTIVE,     //2
-        DNS_PAL_ACTIVE,     //3
-        DNS_PAL_ACTIVE,     //4
-        DNS_PAL_ACTIVE,     //5
-        DNS_PAL_ACTIVE,     //6
-        DNS_PAL_ACTIVE,     //7
-        DNS_PAL_ACTIVE,     //8
-        DNS_PAL_ACTIVE,     //9
-        DNS_PAL_ACTIVE,     //10
-        DNS_PAL_ACTIVE,     //11
-        DNS_PAL_ACTIVE,     //12
-        DNS_PAL_EXCEPTION,  //13
-        DNS_PAL_EXCEPTION,  //14
-        DNS_PAL_EXCEPTION,  //15
-        DNS_PAL_ACTIVE,     //16
-        DNS_PAL_ACTIVE,     //17
-        DNS_PAL_ACTIVE,     //18
-        DNS_PAL_ACTIVE,     //19
-        DNS_PAL_ACTIVE,     //20
-        DNS_PAL_ACTIVE,     //21
-        DNS_PAL_ACTIVE,     //22
-        DNS_PAL_ACTIVE,     //23
-        DNS_PAL_ACTIVE,     //24
-        DNS_PAL_ACTIVE,     //25
-        DNS_PAL_ACTIVE,     //26
-        DNS_PAL_ACTIVE,     //27
-        DNS_PAL_ACTIVE,     //28
-        DNS_PAL_ACTIVE,     //29
-        DNS_PAL_ACTIVE,     //30
-        DNS_PAL_ACTIVE,     //31
-    }
-};
-
-/* Configure each palette slot to be affected or not by DNS *
- * while in combat.                                         */
-const struct DnsPalExceptions gCombatPalExceptions =  
-{
-    .pal = {
-        DNS_PAL_EXCEPTION,  //0
-        DNS_PAL_EXCEPTION,  //1
-        DNS_PAL_ACTIVE,     //2
-        DNS_PAL_ACTIVE,     //3
-        DNS_PAL_ACTIVE,     //4
-        DNS_PAL_EXCEPTION,  //5
-        DNS_PAL_ACTIVE,     //6
-        DNS_PAL_ACTIVE,     //7
-        DNS_PAL_ACTIVE,     //8
-        DNS_PAL_ACTIVE,     //9
-        DNS_PAL_ACTIVE,     //10
-        DNS_PAL_ACTIVE,     //11
-        DNS_PAL_ACTIVE,     //12
-        DNS_PAL_ACTIVE,     //13
-        DNS_PAL_ACTIVE,     //14
-        DNS_PAL_ACTIVE,     //15
-        DNS_PAL_EXCEPTION,  //16
-        DNS_PAL_EXCEPTION,  //17
-        DNS_PAL_EXCEPTION,  //18
-        DNS_PAL_EXCEPTION,  //19
-        DNS_PAL_EXCEPTION,  //20
-        DNS_PAL_EXCEPTION,  //21
-        DNS_PAL_EXCEPTION,  //22
-        DNS_PAL_EXCEPTION,  //23
-        DNS_PAL_EXCEPTION,  //24
-        DNS_PAL_EXCEPTION,  //25
-        DNS_PAL_EXCEPTION,  //26
-        DNS_PAL_EXCEPTION,  //27
-        DNS_PAL_EXCEPTION,  //28
-        DNS_PAL_EXCEPTION,  //29
-        DNS_PAL_EXCEPTION,  //30
-        DNS_PAL_EXCEPTION,  //31
-    }
-};
-
-
-  /*******************************************************/
- /*************    DNS Colour Filters     ***************/
-/*******************************************************/
-/* DNS filters are actual 15bit RGB colours.            *
- * This colours R - G - B channels are substracted from *
- * the original colour in the palette buffer during the *
- * transfer from the buffer to the palette RAM.         *
- *                                                      *
- *  [BUFFER] -> (Value - Filter) -> [PAL_RAM]           *
- *                                                      *
- * This means that you shouln't use too high values for *
- * RGB channels in the filters. Otherwie, the channels  *
- * will easily reach 0, giving you plain colours.       *
- * I Suggest to not use channels with a value above 16. *
- *                                                      *
- * Feel free to experiment with your own filters.       *
- * ******************************************************
- * DNS Alternative Filtering System                     *
- * I've created and alternative filtering system, which *
- * substracts the level of each channel porportionally. *
- * I personally prefer this alternative method, since   *
- * the filters are blended "softer".                    *
- * This is more noticeable with the darker filters.     *
- */
-
-/* Filters used at midnight.                    *
- * From 00:00 to 01:00 filters are cycled every *
- * 8 minutes.                                   *
- * From 01:00 to 07:00 the last filter is used. */
-const u16 gMidnightFilters[] =
-{
-    RGB2(14, 14, 6),    //CE19
-    RGB2(14, 14, 7),    //CE1D
-    RGB2(14, 14, 8),    //CE21
-    RGB2(15, 15, 8),    //EF21
-    RGB2(15, 15, 9),    //EF25
-    RGB2(15, 15, 9),    //EF25
-    RGB2(16, 16, 9),    //1026
-    RGB2(16, 16, 10),   //102A
-};
-
-/* Filters used at dawn. (30 filters).          *
- * From 07:00 to 08:00 filters are cycled every *
- * 2 minutes.                                   */
-const u16 gDawnFilters[] =
-{
-    RGB2(15, 15, 10),
-    RGB2(15, 15, 10),   //1
-    RGB2(14, 14, 10),   //2
-    RGB2(13, 13, 10),   //3
-    RGB2(12, 12, 10),   //4
-    RGB2(11, 11, 10),   //5
-    RGB2(10, 10, 10),   //6
-    RGB2(9, 9, 10),     //7
-    RGB2(8, 8, 10),     //8
-    RGB2(8, 8, 11),     //9
-    RGB2(7, 7, 11),     //10
-    RGB2(6, 6, 11),     //11
-    RGB2(5, 5, 11),     //12
-    RGB2(4, 4, 11),     //13
-    RGB2(3, 3, 11),     //14
-    RGB2(2, 2, 11),     //15
-    RGB2(1, 1, 11),     //16
-    RGB2(0, 0, 11),     //17
-    RGB2(0, 0, 10),     //18
-    RGB2(0, 0, 9),      //19
-    RGB2(0, 0, 8),      //20
-    RGB2(0, 0, 7),      //21
-    RGB2(0, 0, 6),      //22
-    RGB2(0, 0, 5),      //23
-    RGB2(0, 0, 4),      //24
-    RGB2(0, 0, 3),      //0003
-    RGB2(0, 0, 2),      //0002
-    RGB2(0, 0, 1),      //0001
-    RGB2(0, 0, 0),      //0000
-    RGB2(0, 0, 0),      //0000
-};
-
-/* Filters used at day. (no filter actually lul)*/
-const u16 gDayFilter = RGB2(0, 0, 0);   //0000
-
-/* Filters used at sunset. (30 filters).        *
- * From 19:00 to 20:00 filters are cycled every *
- * 2 minutes.                                   */
-const u16 gSunsetFilters[] = 
-{
-    RGB2(0, 0, 1),      //0004
-    RGB2(0, 1, 1),      //2004
-    RGB2(0, 1, 2),      //2008
-    RGB2(0, 1, 3),      //200C
-    RGB2(0, 2, 3),      //400C
-    RGB2(0, 2, 4),      //4010
-    RGB2(0, 2, 5),      //4014
-    RGB2(0, 3, 5),      //6014
-    RGB2(0, 3, 6),      //6018
-    RGB2(0, 3, 7),      //601C
-    RGB2(0, 4, 7),      //801C
-    RGB2(0, 4, 8),      //8020
-    RGB2(0, 4, 9),      //8024
-    RGB2(0, 5, 9),      //A024
-    RGB2(0, 5, 10),     //A028
-    RGB2(0, 5, 11),     //A02C
-    RGB2(0, 6, 11),     //C02C
-    RGB2(0, 6, 12),     //C030
-    RGB2(0, 6, 13),     //C034
-    RGB2(0, 7, 13),     //E034
-    RGB2(0, 7, 14),     //E038
-    RGB2(0, 7, 14),     //E038
-    RGB2(0, 8, 14),     //0039
-    RGB2(0, 9, 14),     //2039
-    RGB2(0, 10, 14),    //4039
-    RGB2(0, 11, 14),    //6039
-    RGB2(0, 12, 14),    //8039
-    RGB2(0, 13, 14),    //A039
-    RGB2(0, 14, 14),    //C039
-    RGB2(0, 14, 14),    //C039
-};
-
-/* Filters used at nightfall. (30 filters).     *
- * From 20:00 to 21:00 filters are cycled every *
- * 2 minutes.                                   */
-const u16 gNightfallFilters[] = 
-{
-    RGB2(0, 14, 14),    //39C0
-    RGB2(0, 14, 14),    //39C0
-    RGB2(0, 14, 13),    //35C0
-    RGB2(0, 14, 12),    //31C0
-    RGB2(0, 14, 11),    //2DC0
-    RGB2(0, 14, 10),    //29C0
-    RGB2(1, 14, 10),    //29C1
-    RGB2(1, 14, 9),     //25C1
-    RGB2(0, 14, 8),     //21C0
-    RGB2(1, 14, 7),     //1DC1
-    RGB2(1, 14, 6),     //19C1
-    RGB2(2, 14, 6),     //19C2
-    RGB2(2, 14, 5),     //15C2
-    RGB2(2, 14, 4),     //11C2
-    RGB2(2, 14, 3),     //0DC2
-    RGB2(2, 14, 2),     //09C2
-    RGB2(2, 14, 2),     //09C2
-    RGB2(3, 14, 3),     //0DC3
-    RGB2(4, 14, 4),     //11C4
-    RGB2(5, 14, 5),     //15C5
-    RGB2(6, 14, 6),     //19C6
-    RGB2(7, 14, 6),     //19C7
-    RGB2(8, 14, 6),     //19C8
-    RGB2(9, 14, 6),     //19C9
-    RGB2(10, 14, 6),    //19CA
-    RGB2(11, 14, 6),    //19CB
-    RGB2(12, 14, 6),    //19CC
-    RGB2(13, 14, 6),    //19CD
-    RGB2(14, 14, 6),    //19CE
-    RGB2(14, 14, 6),    //19CE
-};
-
-/* Filter used at night. From 21:00 to 24:00 */
-const u16 gNightFilter = RGB2(14, 14, 6);   //19CE
-
-/*************   SpritePalette Dns exceptions by TAG   **************
- * If you are using any dynamic sprite palette allocation system,   *
- * you will most likely want to use this system to avoid certain    *
- * palette tags to be "banned" from dns, as the palettes may get    *
- * loaded in different slots each time.                             */
-const u16 gPaletteTagExceptions[] =
-{
-    0xD6FF, //TAG_HEALTHBOX_PAL
-    0xD704, //TAG_HEALTHBAR_PAL
-    0xD710, //TAG_STATUS_SUMMARY_BAR_PAL
-    0xD712, //TAG_STATUS_SUMMARY_BALLS_PAL
-};
-
-/***********************************************
- * --------- DNS CONFIGURATION END ----------- *
- * ******************************************* */
-
-
-//Functions
-static u16 DnsApplyFilterToColour(u16 colour, u16 filter);
-static u16 DnsApplyProportionalFilterToColour(u16 colour, u16 filter);
-static void DoDnsLightning();
-static u16 GetDNSFilter();
-static bool8 IsMapDNSException();
-static bool8 IsSpritePaletteTagDnsException(u8 palNum);
-static bool8 IsOverworld();
-static bool8 IsCombat();
-static bool8 IsLightActive();
-const struct LightingColour* GetIdForSecondaryTileset(); 
-
-
-const struct LightingColour* GetIdForSecondaryTileset()
-{
-    u16 secondaryID = gMapHeader.mapLayoutId;
-    switch (secondaryID)
-    {
-        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
-             return gLightingBattleFrontierWest;
-        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST:
-            return gLightingBattleFrontierEast;
-        case LAYOUT_PETALBURG_CITY:
-            return gLightingPetalburg;
-        default:
-            return NULL; 
-    }
-}
-
-const u16 GetSizeOfLightingColour()
-{
-    u16 size;
-    u16 secondaryID = gMapHeader.mapLayoutId;
-    switch (secondaryID)
-    {
-        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
-             size = sizeof(gLightingBattleFrontierWest) / sizeof(gLightingBattleFrontierWest[0]);
-             return size; 
-        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST:
-            size = sizeof(gLightingBattleFrontierEast) / sizeof(gLightingBattleFrontierEast[0]);
-            return size; 
-        case LAYOUT_PETALBURG_CITY:
-            size = sizeof(gLightingPetalburg) / sizeof(gLightingPetalburg[0]);
-            return size; 
-        default:
-            return 0; 
-    }
-}
-
-
-//Dns palette buffer in EWRAM
-ALIGNED(4) EWRAM_DATA static u16 sDnsPaletteDmaBuffer[512] = {0};
-
-
-/* **************************************************** *
- * **************** D&N for pokeemerald *************** *
- * **************************************************** *
- * Based on Prime Dialga DNS for Pokemon GBA Games.     *
- * Additional credits to Andrea & Eing                  *
- * Author: Xhyz/Samu                                    *
- ****************************************************** */
-
-//Called from TransferPlttBuffer
-void DnsTransferPlttBuffer(void *src, void *dest)
-{
-    if ((IsOverworld() || IsCombat()) && !IsMapDNSException()) 
-    {
-        DmaCopy16(3, sDnsPaletteDmaBuffer, dest, PLTT_SIZE);
-    }
-    else
-    {
-        DmaCopy16(3, src, dest, PLTT_SIZE);
-    }
-}
-
-/* Applies filter to palette colours, stores new palettes in EWRAM buffer.   *
- * It must be called from CB2 if the DNS wants to be used (similar to        *
- * TransferPlttBuffer)  in VBlank callbacks                                  */
-void DnsApplyFilters()
-{
-    u8 palNum, colNum;
-    u16 colour, rgbFilter;
-    struct DnsPalExceptions palExceptionFlags;
-
-
-    rgbFilter = GetDNSFilter();
-
-    palExceptionFlags = gMain.inBattle ? gCombatPalExceptions : gOWPalExceptions;   //Init pal exception slots
-
-    for (palNum = 0; palNum < 32; palNum++)
-        if (palExceptionFlags.pal[palNum] && (palNum < 15 || !IsSpritePaletteTagDnsException(palNum - 16)))
-            for (colNum = 0; colNum < 16; colNum++) //Transfer filtered palette to buffer
-                sDnsPaletteDmaBuffer[palNum * 16 + colNum] = DnsApplyProportionalFilterToColour(gPlttBufferFaded[palNum * 16 + colNum], rgbFilter);
-        else
-            for (colNum = 0; colNum < 16; colNum++)  //Transfers palette to buffer without filtering
-                sDnsPaletteDmaBuffer[palNum * 16 + colNum] = gPlttBufferFaded[palNum * 16 + colNum];      
-
-    if (!IsMapDNSException() && IsLightActive() && !gMain.inBattle)
-            DoDnsLightning();
-        
-}
-
-//Applies filter to a colour. Filters RGB channels are substracted from colour RGB channels.
-//Based on Andrea's DNS filtering system 
-static u16 DnsApplyFilterToColour(u16 colour, u16 filter)
-{
-    u16 red, green, blue;
-
-    red = (colour & 0x1F) - (filter & 0x1F);
-    green = ((colour & 0x3E0) - (filter & 0x3E0)) >> 5;
-    blue = ((colour & 0x7C00) - (filter & 0x7C00)) >> 10;
-
-    return RGB2(red <= 31 ? red : 0, green <= 31 ? green : 0, blue <= 31 ? blue : 0);
-}
-
-/*Alternative way to apply filter. Works similar to the first one, but colours are substracted PROPORTIONALLY.
-This system is great if you want to avoid colours with low rgb channels getting donw to 0 too fast.
-That's something that can easily happen with above Andrea's filtering system.*/
-static u16 DnsApplyProportionalFilterToColour(u16 colour, u16 filter)
-{
-    u32 red, green, blue;
-
-    red = (colour & 0x1F) * (0x1F - (filter & 0x1F)) >> 5;
-    green = ((colour & 0x3E0) >> 5) * ((0x3E0 - (filter & 0x3E0)) >> 5) >> 5;
-    blue = ((colour & 0x7C00) >> 10) * ((0x7C00 - (filter & 0x7C00)) >> 10) >> 5;
-
-    return RGB2(red <= 31 ? red : 0, green <= 31 ? green : 0, blue <= 31 ? blue : 0);  
-}
-
-//returns the filter to use depending on RTC time.
-static u16 GetDNSFilter()
-{
-    u8 hour = gLocalTime.hours;    
-    u8 minutes = gLocalTime.minutes;   
-
-    switch(GetDnsTimeLapse(hour))
-    {
-        case TIME_MIDNIGHT:
-            if (hour < 1)
-                return gMidnightFilters[minutes >> 3];            
-            else
-                return gMidnightFilters[7];
-
-        case TIME_DAWN:
-            return gDawnFilters[minutes >> 1];
-
-        case TIME_DAY:
-            return gDayFilter;
-
-        case TIME_SUNSET: 
-            return gSunsetFilters[minutes >> 1];
-
-        case TIME_NIGHTFALL:
-            return gNightfallFilters[minutes >> 1];
-
-        case TIME_NIGHT:
-            return gNightFilter;
-    }
-
-    return 0;
-}
-
-static void DoDnsLightning()
-{
-    //Primary Tileset Replacement for Overworld
-    u8 i;
-    u8 j;
-    const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
-    const u16 size = GetSizeOfLightingColour(); 
-
- 
-    
-
-    for (i = 0; i < sizeof(gLightingColours)/sizeof(gLightingColours[0]); i++)
-    {
-        u16 colourSlot = gLightingColours[i].paletteNum * 16 + gLightingColours[i].colourNum;
-        
-        if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot] != 0x0000)
-        {
-            sDnsPaletteDmaBuffer[colourSlot] = gPlttBufferFaded[colourSlot];
-            gPlttBufferUnfaded[colourSlot] = gLightingColours[i].lightColour;
-        }
-        else
-        {
-            sDnsPaletteDmaBuffer[colourSlot] = gLightingColours[i].lightColour;
-        }
-    }
-
-    //Secondary Tileset
-    if (gSecondaryTilesetLightingColour != NULL){
-    for (j = 0; j < size; j++)
-    {
-        u16 colourSlot2 = gSecondaryTilesetLightingColour[j].paletteNum * 16 + gSecondaryTilesetLightingColour[j].colourNum;
-        
-        if (gPaletteFade.active || gPlttBufferUnfaded[colourSlot2] != 0x0000)
-        {
-            sDnsPaletteDmaBuffer[colourSlot2] = gPlttBufferFaded[colourSlot2];
-            gPlttBufferUnfaded[colourSlot2] = gSecondaryTilesetLightingColour[j].lightColour;
-        }
-        else
-        {
-                sDnsPaletteDmaBuffer[colourSlot2] = gSecondaryTilesetLightingColour[j].lightColour;
-        }
-    }
-    }
- 
-    
-
-}
-
-//For wild pokemon header
-//NOTE: Do new enum for redoing DNS
 u8 GetCurrentTimeOfDay(void)
 {
-    u8 hour = gLocalTime.hours;  //0 to 24
-
-    if (hour < 8)
+    if (gLocalTime.hours < HOUR_MORNING)
         return TIME_NIGHT;
-    else if (hour < 20)
-        return TIME_DAY; 
-    else 
-        return TIME_NIGHT;
-}
-
-
-//Returns Dns time lapse
-u8 GetDnsTimeLapse(u8 hour)
-{
-    if (hour < MIDNIGHT_END_HOUR)
-        return TIME_MIDNIGHT;
-    else if (hour < DAWN_END_HOUR)
-        return TIME_DAWN;
-    else if (hour < DAY_END_HOUR)
+    else if (gLocalTime.hours < HOUR_DAY)
+        return TIME_MORNING;
+    else if (gLocalTime.hours < HOUR_NIGHT)
         return TIME_DAY;
-    else if (hour < SUNSET_END_HOUR)
-        return TIME_SUNSET;
-    else if (hour < NIGHTFALL_END_HOUR)
-        return TIME_NIGHTFALL;
-    else 
-        return TIME_NIGHT;
+
+    return TIME_NIGHT;
 }
 
-//Checks if current map is affected by dns
-static bool8 IsMapDNSException()
+static void LoadPaletteOverrides(void)
 {
-    u8 i;
-    // if (gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST || LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST)
-    //     return TRUE; 
-    for (i=0; i < sizeof(gDnsMapExceptions)/sizeof(gDnsMapExceptions[0]); i++)
-        if (gMapHeader.mapType == gDnsMapExceptions[i])
-            return TRUE;
-    return FALSE;
+    u32 i, j;
+    const u16* src;
+    u16* dest;
+    s8 hour = gLocalTime.hours;
+
+    for (i = 0; i < ARRAY_COUNT(gPaletteOverrides); i++)
+    {
+        const struct PaletteOverride *curr = gPaletteOverrides[i];
+        if (curr != NULL)
+        {
+            while (curr->slot != PALOVER_LIST_TERM && curr->palette != NULL)
+            {
+                if ((curr->startHour < curr->endHour && hour >= curr->startHour && hour < curr->endHour) ||
+                    (curr->startHour > curr->endHour && (hour >= curr->startHour || hour < curr->endHour)))
+                {
+                    for (j = 0, src = curr->palette, dest = &gPlttBufferUnfaded[curr->slot * 16]; j < 16; j++, src++, dest++)
+                    {
+                        if (*src != RGB_BLACK)
+                            *dest = *src;
+                    }
+                }
+                curr++;
+            }
+        }
+    }
 }
 
-//Returns true if the palette should not be affected by DNS filtering
-static bool8 IsSpritePaletteTagDnsException(u8 palNum)
+static bool32 LerpColors(u16 *rgbDest, const u16 *rgb1, const u16 *rgb2, u8 coeff)
 {
-    u8 i;
+    u16 rgbTemp[3];
 
-    for (i = 0; i < sizeof(gPaletteTagExceptions)/sizeof(gPaletteTagExceptions[0]); i++)
-        if (GetSpritePaletteTagByPaletteNum(palNum) == gPaletteTagExceptions[i])
-            return TRUE;
-    return FALSE;
-}
+    memcpy(rgbTemp, rgb1, sizeof(rgbTemp));
 
-//Returns true if overworld is running
-static bool8 IsOverworld()
-{
-    if (gMain.callback2 == CB2_Overworld || gMain.callback2 ==CB2_OverworldBasic)
+    if (rgb1[0] != rgb2[0] ||
+        rgb1[1] != rgb2[1] ||
+        rgb1[2] != rgb2[2])
+    {
+        rgbTemp[0] = (((rgb2[0] - rgb1[0]) * coeff) / TINT_PERIODS_PER_HOUR) + rgb1[0];
+        rgbTemp[1] = (((rgb2[1] - rgb1[1]) * coeff) / TINT_PERIODS_PER_HOUR) + rgb1[1];
+        rgbTemp[2] = (((rgb2[2] - rgb1[2]) * coeff) / TINT_PERIODS_PER_HOUR) + rgb1[2];
+    }
+
+    if (rgbTemp[0] != rgbDest[0] ||
+        rgbTemp[1] != rgbDest[1] ||
+        rgbTemp[2] != rgbDest[2])
+    {
+        memcpy(rgbDest, rgbTemp, sizeof(rgbTemp));
         return TRUE;
+    }
+
+    return FALSE;
+}
+
+static void TintPalette_CustomToneWithCopy(const u16 *src, u16 *dest, u16 count, u16 rTone, u16 gTone, u16 bTone, bool32 excludeZeroes)
+{
+    s32 r, g, b, i;
+    u32 gray;
+
+    for (i = 0; i < count; i++, src++, dest++)
+    {
+        if (excludeZeroes && *src == RGB_BLACK)
+            continue;
+
+        r = (*src >>  0) & 0x1F;
+        g = (*src >>  5) & 0x1F;
+        b = (*src >> 10) & 0x1F;
+
+        r = (u16)((rTone * r)) >> 8;
+        g = (u16)((gTone * g)) >> 8;
+        b = (u16)((bTone * b)) >> 8;
+
+        if (r > 31)
+            r = 31;
+        if (g > 31)
+            g = 31;
+        if (b > 31)
+            b = 31;
+
+        *dest = (b << 10) | (g << 5) | (r << 0);
+    }
+}
+
+static void TintPaletteForDayNight(u16 offset, u16 size)
+{
+    if (IsMapTypeOutdoors(gMapHeader.mapType))
+    {
+        s8 hour, nextHour;
+        u8 hourPhase;
+        u16 period;
+
+        RtcCalcLocalTimeFast();
+
+        hour = gLocalTime.hours;
+        hourPhase = gLocalTime.minutes / MINUTES_PER_TINT_PERIOD;
+
+        period = (hour * TINT_PERIODS_PER_HOUR) + hourPhase;
+
+        if (!sDNSystemControl.initialized || sDNSystemControl.currTintPeriod != period)
+        {
+            sDNSystemControl.initialized = TRUE;
+            sDNSystemControl.currTintPeriod = period;
+            nextHour = (hour + 1) % 24;
+            LerpColors(sDNSystemControl.currRGBTint, sTimeOfDayTints[hour], sTimeOfDayTints[nextHour], hourPhase);
+        }
+
+        TintPalette_CustomToneWithCopy(&gPlttBufferPreDN[offset], &gPlttBufferUnfaded[offset], size / 2, sDNSystemControl.currRGBTint[0], sDNSystemControl.currRGBTint[1], sDNSystemControl.currRGBTint[2], FALSE);
+        LoadPaletteOverrides();
+    }
     else
-        return FALSE;
+    {
+        CpuCopy16(&gPlttBufferPreDN[offset], &gPlttBufferUnfaded[offset], size);
+    }
 }
 
-//Returns true if combat is running
-static bool8 IsCombat()
+void LoadCompressedPaletteDayNight(const u32 *src, u16 offset, u16 size)
 {
-    if (gMain.callback2 == BattleMainCB2)
-        return TRUE;
+    LoadCompressedPalette_HandleDayNight(src, offset, size, TRUE);
+}
+
+void LoadPaletteDayNight(const void *src, u16 offset, u16 size)
+{
+    LoadPalette_HandleDayNight(src, offset, size, TRUE);
+}
+
+void CheckClockForImmediateTimeEvents(void)
+{
+    if (!sDNSystemControl.retintPhase && IsMapTypeOutdoors(gMapHeader.mapType))
+        RtcCalcLocalTimeFast();
+}
+
+void ProcessImmediateTimeEvents(void)
+{
+    u32 period;
+
+    if (IsMapTypeOutdoors(gMapHeader.mapType))
+    {
+        if (sDNSystemControl.retintPhase)
+        {
+            sDNSystemControl.retintPhase = FALSE;
+            TintPalette_CustomToneWithCopy(&gPlttBufferPreDN[BG_PLTT_SIZE / 2], &gPlttBufferUnfaded[BG_PLTT_SIZE / 2], OBJ_PLTT_SIZE / 2, sDNSystemControl.currRGBTint[0], sDNSystemControl.currRGBTint[1], sDNSystemControl.currRGBTint[2], TRUE);
+            LoadPaletteOverrides();
+
+            if (gWeatherPtr->palProcessingState != WEATHER_PAL_STATE_SCREEN_FADING_IN &&
+                gWeatherPtr->palProcessingState != WEATHER_PAL_STATE_SCREEN_FADING_OUT)
+            {
+                CpuCopy16(gPlttBufferUnfaded, gPlttBufferFaded, PLTT_SIZE);
+
+                #define paletteIndex period
+                for (paletteIndex = 0; paletteIndex < NUM_PALS_TOTAL; paletteIndex++)
+                    ApplyWeatherColorMapToPal(paletteIndex);
+                #undef paletteIndex
+            }
+        }
+        else
+        {
+            s8 hour, nextHour;
+            u8 hourPhase;
+
+            hour = gLocalTime.hours;
+            hourPhase = gLocalTime.minutes / MINUTES_PER_TINT_PERIOD;
+
+            period = (hour * TINT_PERIODS_PER_HOUR) + hourPhase;
+
+            if (!sDNSystemControl.initialized || sDNSystemControl.prevTintPeriod != period)
+            {
+                sDNSystemControl.initialized = TRUE;
+                sDNSystemControl.prevTintPeriod = sDNSystemControl.currTintPeriod = period;
+                nextHour = (hour + 1) % 24;
+                LerpColors(sDNSystemControl.currRGBTint, sTimeOfDayTints[hour], sTimeOfDayTints[nextHour], hourPhase);
+                TintPalette_CustomToneWithCopy(gPlttBufferPreDN, gPlttBufferUnfaded, BG_PLTT_SIZE / 2, sDNSystemControl.currRGBTint[0], sDNSystemControl.currRGBTint[1], sDNSystemControl.currRGBTint[2], TRUE);
+                sDNSystemControl.retintPhase = TRUE;
+            }
+        }
+    }
+
+    #define currentTimeOfDay period
+    currentTimeOfDay = GetCurrentTimeOfDay();
+    if (sDNSystemControl.timeOfDay != currentTimeOfDay)
+    {
+        sDNSystemControl.timeOfDay = currentTimeOfDay;
+        ForceTimeBasedEvents(); // for misc events that should run on time of day boundaries
+    }
+    #undef currentTimeOfDay
+}
+
+void LoadCompressedPalette_HandleDayNight(const u32 *src, u16 offset, u16 size, bool32 isDayNight)
+{
+    LZ77UnCompWram(src, gPaletteDecompressionBuffer);
+    if (isDayNight)
+    {
+        CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferPreDN[offset], size);
+        TintPaletteForDayNight(offset, size);
+        CpuCopy16(&gPlttBufferUnfaded[offset], &gPlttBufferFaded[offset], size);
+    }
     else
-        return FALSE;
+    {
+        CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferUnfaded[offset], size);
+        CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferFaded[offset], size);
+    }
 }
 
-static bool8 IsLightActive()
+void LoadPalette_HandleDayNight(const void *src, u16 offset, u16 size, bool32 isDayNight)
 {
-    if (gLocalTime.hours >= LIGHTNING_START_HOUR || gLocalTime.hours < LIGHTNING_END_HOUR)
-        return TRUE;
-    return FALSE;
+    if (isDayNight)
+    {
+        CpuCopy16(src, &gPlttBufferPreDN[offset], size);
+        TintPaletteForDayNight(offset, size);
+        CpuCopy16(&gPlttBufferUnfaded[offset], &gPlttBufferFaded[offset], size);
+    }
+    else
+    {
+        CpuCopy16(src, &gPlttBufferUnfaded[offset], size);
+        CpuCopy16(src, &gPlttBufferFaded[offset], size);
+    }
 }
+
+
+// //For wild pokemon header
+// //NOTE: Do new enum for redoing DNS
+// u8 GetCurrentTimeOfDay(void)
+// {
+//     u8 hour = gLocalTime.hours;  //0 to 24
+
+//     if (hour < 8)
+//         return TIME_NIGHT;
+//     else if (hour < 20)
+//         return TIME_DAY; 
+//     else 
+//         return TIME_NIGHT;
+// }

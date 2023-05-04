@@ -1471,7 +1471,6 @@ void CB1_Overworld(void)
 
 static void OverworldBasic(void)
 {
-    DnsApplyFilters();
     ScriptContext_RunScript();
     RunTasks();
     AnimateSprites();

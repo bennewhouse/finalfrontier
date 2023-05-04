@@ -1,7 +1,10 @@
 #include "global.h"
 #include "tilesets.h"
 #include "tileset_anims.h"
+#include "dns.h"
+#include "constants/dns.h"
 
 #include "data/tilesets/graphics.h"
 #include "data/tilesets/metatiles.h"
 #include "data/tilesets/headers.h"
+#include "data/tilesets/overrides.h"

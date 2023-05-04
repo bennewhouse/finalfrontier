@@ -665,11 +665,8 @@ bool8 CameraMove(int x, int y)
         old_y = gSaveBlock1Ptr->pos.y;
         connection = GetIncomingConnection(direction, gSaveBlock1Ptr->pos.x, gSaveBlock1Ptr->pos.y);
         SetPositionFromConnection(connection, direction, x, y);
-        //FieldClearVBlankHBlankCallbacks();
         LoadMapFromCameraTransition(connection->mapGroup, connection->mapNum);
         SetMainCallback2(CB2_Overworld); 
-        //OverworldBasic(); 
-        //DnsApplyFilters(); 
         gCamera.active = TRUE;
         gCamera.x = old_x - gSaveBlock1Ptr->pos.x;
         gCamera.y = old_y - gSaveBlock1Ptr->pos.y;
@@ -884,18 +881,21 @@ void LoadTilesetPalette(struct Tileset const *tileset, u16 destOffset, u16 size)
     {
         if (tileset->isSecondary == FALSE)
         {
+            gPaletteOverrides[0] = tileset->paletteOverrides;
             LoadPalette(&black, destOffset, 2);
-            LoadPalette(tileset->palettes[0] + 1, destOffset + 1, size - 2);
+            LoadPaletteDayNight(tileset->palettes[0] + 1, destOffset + 1, size - 2); //formerly PLTT_SIZEOF
             ApplyGlobalTintToPaletteEntries(destOffset + 1, (size - 2) >> 1);
         }
         else if (tileset->isSecondary == TRUE)
         {
-            LoadPalette(tileset->palettes[NUM_PALS_IN_PRIMARY], destOffset, size);
+            gPaletteOverrides[1] = tileset->paletteOverrides;
+            LoadPaletteDayNight(tileset->palettes[NUM_PALS_IN_PRIMARY], destOffset, size);
             ApplyGlobalTintToPaletteEntries(destOffset, size >> 1);
         }
         else
         {
-            LoadCompressedPalette((const u32 *)tileset->palettes, destOffset, size);
+            gPaletteOverrides[2] = tileset->paletteOverrides;
+            LoadCompressedPaletteDayNight((const u32 *)tileset->palettes, destOffset, size);
             ApplyGlobalTintToPaletteEntries(destOffset, size >> 1);
         }
     }

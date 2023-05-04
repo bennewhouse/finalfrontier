@@ -26,6 +26,7 @@
 #include "constants/items.h"
 #include "constants/layouts.h"
 #include "constants/weather.h"
+#include "constants/dns.h"
 
 extern const u8 EventScript_RepelWoreOff[];
 extern const u8 EventScript_LureWoreOff[];

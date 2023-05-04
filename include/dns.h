@@ -1,34 +1,30 @@
-#ifndef GUARD_DNS_UTILS_H
-#define GUARD_DNS_UTILS_H
+#ifndef GUARD_DAY_NIGHT_H
+#define GUARD_DAY_NIGHT_H
 
-#define DNS_PAL_EXCEPTION   FALSE
-#define DNS_PAL_ACTIVE      TRUE
+#define PALOVER_LIST_TERM 0xFF
 
-struct LightingColour {
-    u8 paletteNum;
-    u8 colourNum;
-    u16 lightColour;
-};
-
-struct DnsPalExceptions {
-    bool8 pal[32];
-};
-
-/* Timelapses */
-enum
+struct PaletteOverride
 {
-    TIME_MIDNIGHT,
-    TIME_DAWN,
-    TIME_DAY,
-    TIME_SUNSET,
-    TIME_NIGHTFALL,
-    TIME_NIGHT
+    u8 slot;
+    u8 startHour;
+    u8 endHour;
+    const u16 *palette;
 };
 
-void DnsTransferPlttBuffer(void *src, void *dest);
-void DnsApplyFilters();
-//static void DoDnsLightning(); 
-u8 GetDnsTimeLapse(u8 hour);
-u8 GetCurrentTimeOfDay(void);
+extern EWRAM_DATA u16 gPlttBufferPreDN[];
+extern EWRAM_DATA const struct PaletteOverride *gPaletteOverrides[];
 
-#endif /* GUARD_DNS_UTILS_H */
+u8 GetCurrentTimeOfDay(void);
+void LoadCompressedPaletteDayNight(const u32 *src, u16 offset, u16 size);
+void LoadPaletteDayNight(const void *src, u16 offset, u16 size);
+void CheckClockForImmediateTimeEvents(void);
+void ProcessImmediateTimeEvents(void);
+
+void LoadCompressedPalette_HandleDayNight(const u32 *src, u16 offset, u16 size, bool32 isDayNight);
+void LoadPalette_HandleDayNight(const void *src, u16 offset, u16 size, bool32 isDayNight);
+
+#endif // GUARD_DAY_NIGHT_H
+
+
+
+

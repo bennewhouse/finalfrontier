@@ -6,6 +6,7 @@
 #include "task.h"
 #include "dns.h"
 #include "constants/rgb.h"
+#include "constants/dns.h"
 
 enum
 {
@@ -84,15 +85,17 @@ static const u8 sRoundedDownGrayscaleMap[] = {
 
 void LoadCompressedPalette(const u32 *src, u16 offset, u16 size)
 {
-    LZDecompressWram(src, gPaletteDecompressionBuffer);
-    CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferUnfaded[offset], size);
-    CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferFaded[offset], size);
+    // LZDecompressWram(src, gPaletteDecompressionBuffer);
+    // CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferUnfaded[offset], size);
+    // CpuCopy16(gPaletteDecompressionBuffer, &gPlttBufferFaded[offset], size);
+    LoadCompressedPalette_HandleDayNight(src, offset, size, FALSE);
 }
 
 void LoadPalette(const void *src, u16 offset, u16 size)
 {
-    CpuCopy16(src, &gPlttBufferUnfaded[offset], size);
-    CpuCopy16(src, &gPlttBufferFaded[offset], size);
+    // CpuCopy16(src, &gPlttBufferUnfaded[offset], size);
+    // CpuCopy16(src, &gPlttBufferFaded[offset], size);
+    LoadPalette_HandleDayNight(src, offset, size, FALSE);
 }
 
 void FillPalette(u16 value, u16 offset, u16 size)
@@ -107,7 +110,7 @@ void TransferPlttBuffer(void)
     {
         void *src = gPlttBufferFaded;
         void *dest = (void *)PLTT;
-        DnsTransferPlttBuffer(src, dest);  //Does 16b Dma Transfer
+        DmaCopy16(3, src, dest, PLTT_SIZE);
         sPlttBufferTransferPending = 0;
         if (gPaletteFade.mode == HARDWARE_FADE && gPaletteFade.active)
             UpdateBlendRegisters();
