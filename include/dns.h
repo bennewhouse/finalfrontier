@@ -27,6 +27,7 @@ enum
 
 void DnsTransferPlttBuffer(void *src, void *dest);
 void DnsApplyFilters();
+//static void DoDnsLightning(); 
 u8 GetDnsTimeLapse(u8 hour);
 u8 GetCurrentTimeOfDay(void);
 

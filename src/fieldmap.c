@@ -16,6 +16,7 @@
 #include "tv.h"
 #include "constants/rgb.h"
 #include "constants/metatile_behaviors.h"
+#include "dns.h"
 
 struct ConnectionFlags
 {
@@ -664,7 +665,11 @@ bool8 CameraMove(int x, int y)
         old_y = gSaveBlock1Ptr->pos.y;
         connection = GetIncomingConnection(direction, gSaveBlock1Ptr->pos.x, gSaveBlock1Ptr->pos.y);
         SetPositionFromConnection(connection, direction, x, y);
+        //FieldClearVBlankHBlankCallbacks();
         LoadMapFromCameraTransition(connection->mapGroup, connection->mapNum);
+        SetMainCallback2(CB2_Overworld); 
+        //OverworldBasic(); 
+        //DnsApplyFilters(); 
         gCamera.active = TRUE;
         gCamera.x = old_x - gSaveBlock1Ptr->pos.x;
         gCamera.y = old_y - gSaveBlock1Ptr->pos.y;

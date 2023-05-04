@@ -327,6 +327,7 @@ static void Task_ExitDoor(u8 taskId)
     {
     case 0:
         HideFollower();
+        LockPlayerFieldControls();
         SetPlayerVisibility(FALSE);
         FreezeObjectEvents();
         PlayerGetDestCoords(x, y);
@@ -384,6 +385,7 @@ static void Task_ExitNonAnimDoor(u8 taskId)
         HideFollower();
         SetPlayerVisibility(FALSE);
         FreezeObjectEvents();
+        LockPlayerFieldControls();
         PlayerGetDestCoords(x, y);
         task->tState = 1;
         break;

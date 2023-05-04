@@ -89,20 +89,34 @@ const struct LightingColour gLightingColours[] =
 const struct LightingColour gLightingBlank[] =
 {
     // {.paletteNum = 1, .colourNum = 10, .lightColour = RGB2(30, 30, 5), }, example 
-
     {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(30, 30, 5), },
-
 };
 //work to be done
 const struct LightingColour gLightingBattleFrontierWest[] =
 {
-
+    {.paletteNum = 9, .colourNum = 1, .lightColour = RGB2(31, 31, 31), }, //white NOTE: REDO WINDOWS IF WANT
     {.paletteNum = 9, .colourNum = 2, .lightColour = RGB2(26, 25, 4), },
     {.paletteNum = 9, .colourNum = 3, .lightColour = RGB2(22, 21, 3), },
+    {.paletteNum = 12, .colourNum = 1, .lightColour = RGB2(31, 31, 31), }, //white
+    {.paletteNum = 12, .colourNum = 2, .lightColour = RGB2(26, 25, 4), },
     {.paletteNum = 12, .colourNum = 3, .lightColour = RGB2(30, 30, 5), },
     {.paletteNum = 12, .colourNum = 4, .lightColour = RGB2(26, 25, 4), },
-
 };
+
+const struct LightingColour gLightingBattleFrontierEast[] =
+{
+    {.paletteNum = 12, .colourNum = 15, .lightColour = RGB2(26, 25, 4), },
+    //{.paletteNum = 10, .colourNum = 6, .lightColour = RGB2(26, 25 , 4), }, 
+};
+
+const struct LightingColour gLightingPetalburg[] =
+{
+    //{.paletteNum = 0, .colourNum = 11, .lightColour = RGB2(30, 30, 5), },
+    // {.paletteNum = 0, .colourNum = 12, .lightColour = RGB2(26, 25, 4), }, 
+    // {.paletteNum = 0, .colourNum = 13, .lightColour = RGB2(26, 25, 4), }, 
+    // {.paletteNum = 0, .colourNum = 14, .lightColour = RGB2(22, 21, 3), }, 
+};
+
 
 
 
@@ -376,7 +390,7 @@ const u16 gPaletteTagExceptions[] =
 //Functions
 static u16 DnsApplyFilterToColour(u16 colour, u16 filter);
 static u16 DnsApplyProportionalFilterToColour(u16 colour, u16 filter);
-static void DoDnsLightning(const struct LightingColour*, u16 size);
+static void DoDnsLightning();
 static u16 GetDNSFilter();
 static bool8 IsMapDNSException();
 static bool8 IsSpritePaletteTagDnsException(u8 palNum);
@@ -392,7 +406,11 @@ const struct LightingColour* GetIdForSecondaryTileset()
     switch (secondaryID)
     {
         case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
-            return gLightingBattleFrontierWest;
+             return gLightingBattleFrontierWest;
+        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST:
+            return gLightingBattleFrontierEast;
+        case LAYOUT_PETALBURG_CITY:
+            return gLightingPetalburg;
         default:
             return NULL; 
     }
@@ -405,7 +423,13 @@ const u16 GetSizeOfLightingColour()
     switch (secondaryID)
     {
         case LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST:
-            size = sizeof(gLightingBattleFrontierWest) / sizeof(gLightingBattleFrontierWest[0]);
+             size = sizeof(gLightingBattleFrontierWest) / sizeof(gLightingBattleFrontierWest[0]);
+             return size; 
+        case LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST:
+            size = sizeof(gLightingBattleFrontierEast) / sizeof(gLightingBattleFrontierEast[0]);
+            return size; 
+        case LAYOUT_PETALBURG_CITY:
+            size = sizeof(gLightingPetalburg) / sizeof(gLightingPetalburg[0]);
             return size; 
         default:
             return 0; 
@@ -447,8 +471,6 @@ void DnsApplyFilters()
     u16 colour, rgbFilter;
     struct DnsPalExceptions palExceptionFlags;
 
-    const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
-    const u16 size = GetSizeOfLightingColour(); 
 
     rgbFilter = GetDNSFilter();
 
@@ -463,11 +485,8 @@ void DnsApplyFilters()
                 sDnsPaletteDmaBuffer[palNum * 16 + colNum] = gPlttBufferFaded[palNum * 16 + colNum];      
 
     if (!IsMapDNSException() && IsLightActive() && !gMain.inBattle)
+            DoDnsLightning();
         
-        if (gSecondaryTilesetLightingColour != NULL)
-        {
-            DoDnsLightning(gSecondaryTilesetLightingColour, size);
-        }
 }
 
 //Applies filter to a colour. Filters RGB channels are substracted from colour RGB channels.
@@ -530,13 +549,14 @@ static u16 GetDNSFilter()
     return 0;
 }
 
-static void DoDnsLightning(const struct LightingColour* gSecondaryTilesetLightingColour, u16 size)
+static void DoDnsLightning()
 {
     //Primary Tileset Replacement for Overworld
     u8 i;
     u8 j;
-    //Map Specific Lighting Replacements
-    //const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
+    const struct LightingColour* gSecondaryTilesetLightingColour = GetIdForSecondaryTileset();
+    const u16 size = GetSizeOfLightingColour(); 
+
  
     
 
@@ -555,6 +575,7 @@ static void DoDnsLightning(const struct LightingColour* gSecondaryTilesetLightin
         }
     }
 
+    //Secondary Tileset
     if (gSecondaryTilesetLightingColour != NULL){
     for (j = 0; j < size; j++)
     {
@@ -577,6 +598,7 @@ static void DoDnsLightning(const struct LightingColour* gSecondaryTilesetLightin
 }
 
 //For wild pokemon header
+//NOTE: Do new enum for redoing DNS
 u8 GetCurrentTimeOfDay(void)
 {
     u8 hour = gLocalTime.hours;  //0 to 24
@@ -584,7 +606,7 @@ u8 GetCurrentTimeOfDay(void)
     if (hour < 8)
         return TIME_NIGHT;
     else if (hour < 20)
-        return TIME_DAY;
+        return TIME_DAY; 
     else 
         return TIME_NIGHT;
 }
@@ -611,6 +633,8 @@ u8 GetDnsTimeLapse(u8 hour)
 static bool8 IsMapDNSException()
 {
     u8 i;
+    // if (gMapHeader.mapLayoutId == LAYOUT_BATTLE_FRONTIER_OUTSIDE_WEST || LAYOUT_BATTLE_FRONTIER_OUTSIDE_EAST)
+    //     return TRUE; 
     for (i=0; i < sizeof(gDnsMapExceptions)/sizeof(gDnsMapExceptions[0]); i++)
         if (gMapHeader.mapType == gDnsMapExceptions[i])
             return TRUE;
